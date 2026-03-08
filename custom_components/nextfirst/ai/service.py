@@ -28,10 +28,10 @@ from ..const import (
     CONF_AI_MAX_TOKENS,
     CONF_AI_MODEL,
     CONF_AI_PROVIDER,
-    CONF_AI_SUGGESTION_COUNT,
     CONF_AI_TEMPERATURE,
     CONF_BUDGET_PER_PERSON_EUR,
     CONF_CUSTOM_INTERESTS,
+    CONF_DEBUG_ENABLED,
     CONF_EXCLUSIONS,
     CONF_FAMILY_FRIENDLY_ONLY,
     CONF_GOOD_WEATHER_ONLY,
@@ -44,7 +44,7 @@ from ..domain import ExperienceOrigin, utc_now_iso
 from ..errors import AIProviderError, ValidationError
 from ..manager import NextFirstManager
 from .providers.base import SuggestionContext
-from .providers.openai import OpenAISuggestionProvider
+from .providers.openai import OpenAISuggestionProvider, build_openai_prompt_payload
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -78,7 +78,7 @@ def _resolve_origin_coordinates(manager: NextFirstManager, travel_origin: str) -
 async def _geocode_location(
     session: ClientSession,
     location: str,
-) -> tuple[float, float] | None:
+) -> tuple[tuple[float, float], str] | None:
     """Resolve a human-readable location to coordinates via Nominatim."""
     query = str(location or "").strip()
     if not query:
@@ -96,9 +96,43 @@ async def _geocode_location(
             if not payload:
                 return None
             first = payload[0]
-            return (float(first["lat"]), float(first["lon"]))
+            return ((float(first["lat"]), float(first["lon"])), str(first.get("display_name", "")).strip())
     except Exception:
         return None
+
+
+def _build_context(options: dict[str, Any], *, suggestion_count: int) -> SuggestionContext:
+    """Create normalized suggestion context from options."""
+    return SuggestionContext(
+        suggestion_count=suggestion_count,
+        max_travel_minutes=int(options.get(CONF_MAX_TRAVEL_MINUTES, 60)),
+        family_friendly_only=bool(options.get(CONF_FAMILY_FRIENDLY_ONLY, False)),
+        good_weather_only=bool(options.get(CONF_GOOD_WEATHER_ONLY, False)),
+        budget_per_person_eur=int(options.get(CONF_BUDGET_PER_PERSON_EUR, 0) or 0),
+        travel_origin=str(options.get(CONF_TRAVEL_ORIGIN, "zone.home") or "zone.home"),
+        preferred_categories=list(options.get(CONF_PREFERRED_CATEGORIES, [])),
+        preferred_courage_levels=list(options.get(CONF_PREFERRED_COURAGE_LEVELS, [])),
+        custom_interests=str(options.get(CONF_CUSTOM_INTERESTS, "")),
+        exclusions=str(options.get(CONF_EXCLUSIONS, "")),
+    )
+
+
+def build_prompt_preview(options: dict[str, Any]) -> dict[str, Any]:
+    """Build human-readable debug preview of the OpenAI prompt payload."""
+    provider_name = str(options.get(CONF_AI_PROVIDER, "openai"))
+    if provider_name != "openai":
+        raise AIProviderError(
+            f"Unsupported AI provider '{provider_name}'. Fix: use provider 'openai'."
+        )
+    context = _build_context(options, suggestion_count=1)
+    system_prompt, user_prompt = build_openai_prompt_payload(context)
+    return {
+        "provider": provider_name,
+        "model": str(options.get(CONF_AI_MODEL, "gpt-4.1-mini")),
+        "debug_enabled": bool(options.get(CONF_DEBUG_ENABLED, False)),
+        "system_prompt": system_prompt,
+        "user_prompt": user_prompt,
+    }
 
 
 async def _estimate_drive_minutes(
@@ -149,20 +183,9 @@ async def generate_and_store_suggestions(
             f"Unsupported AI provider '{provider_name}'. Fix: use provider 'openai'."
         )
 
-    suggestion_count = int(count_override or options.get(CONF_AI_SUGGESTION_COUNT, 2))
-    target_count = max(1, min(suggestion_count, 20))
-    context = SuggestionContext(
-        suggestion_count=target_count,
-        max_travel_minutes=int(options.get(CONF_MAX_TRAVEL_MINUTES, 60)),
-        family_friendly_only=bool(options.get(CONF_FAMILY_FRIENDLY_ONLY, False)),
-        good_weather_only=bool(options.get(CONF_GOOD_WEATHER_ONLY, False)),
-        budget_per_person_eur=int(options.get(CONF_BUDGET_PER_PERSON_EUR, 0) or 0),
-        travel_origin=str(options.get(CONF_TRAVEL_ORIGIN, "zone.home") or "zone.home"),
-        preferred_categories=list(options.get(CONF_PREFERRED_CATEGORIES, [])),
-        preferred_courage_levels=list(options.get(CONF_PREFERRED_COURAGE_LEVELS, [])),
-        custom_interests=str(options.get(CONF_CUSTOM_INTERESTS, "")),
-        exclusions=str(options.get(CONF_EXCLUSIONS, "")),
-    )
+    # Product decision: exactly one suggestion per user action.
+    target_count = 1
+    context = _build_context(options, suggestion_count=target_count)
     origin_coords = _resolve_origin_coordinates(manager, context.travel_origin)
 
     provider = OpenAISuggestionProvider(
@@ -205,14 +228,17 @@ async def generate_and_store_suggestions(
                 dropped_missing_location += 1
                 continue
             if origin_coords is not None:
-                coords = await _geocode_location(session, str(draft.location))
-                if coords is not None:
+                geocode_result = await _geocode_location(session, str(draft.location))
+                if geocode_result is not None:
+                    coords, normalized_address = geocode_result
                     drive_minutes = await _estimate_drive_minutes(session, origin_coords, coords)
                     if drive_minutes is not None:
                         if drive_minutes > context.max_travel_minutes:
                             dropped_distance += 1
                             continue
                         draft.travel_minutes = drive_minutes
+                    if normalized_address:
+                        draft.location = normalized_address
                     else:
                         # Keep draft if routing service is unavailable; still enforce
                         # model-provided travel time when present.
@@ -267,11 +293,12 @@ async def generate_and_store_suggestions(
     manager.last_ai_generation = utc_now_iso()
     _LOGGER.info(
         "Generated %s AI suggestions (requested=%s, dropped_missing_location=%s, "
-        "dropped_distance=%s, fallback_without_verified_route=%s)",
+        "dropped_distance=%s, fallback_without_verified_route=%s, count_override=%s)",
         len(created),
         target_count,
         dropped_missing_location,
         dropped_distance,
         fallback_without_verified_route,
+        count_override,
     )
     return created

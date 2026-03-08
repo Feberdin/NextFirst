@@ -59,31 +59,7 @@ class OpenAISuggestionProvider:
                 "AI API key missing. Fix: set ai_api_key in NextFirst options."
             )
 
-        system_prompt = (
-            "You generate family-friendly and practical first-time activity ideas. "
-            "Return strict JSON with exactly the requested number of ideas. "
-            "Use either a JSON array or object key 'suggestions'. "
-            "Each item must include title and a concrete location name/address. "
-            "Avoid generic ideas without place names. "
-            "Each item may include "
-            "description, category, courage_level, duration_minutes, cost_level, "
-            "travel_minutes, family_friendly, indoor_outdoor, weather_hint, notes, "
-            "location, budget_per_person_eur."
-        )
-
-        user_prompt = {
-            "count": context.suggestion_count,
-            "max_travel_minutes": context.max_travel_minutes,
-            "travel_origin": context.travel_origin,
-            "family_friendly_only": context.family_friendly_only,
-            "good_weather_only": context.good_weather_only,
-            "budget_per_person_eur": context.budget_per_person_eur,
-            "preferred_categories": context.preferred_categories,
-            "preferred_courage_levels": context.preferred_courage_levels,
-            "custom_interests": context.custom_interests,
-            "exclusions": context.exclusions,
-            "language": "de",
-        }
+        system_prompt, user_prompt = build_openai_prompt_payload(context)
 
         payload = {
             "model": self._model,
@@ -153,9 +129,11 @@ class OpenAISuggestionProvider:
                     notes=item.get("notes"),
                     location=(
                         item.get("location")
-                        or item.get("place")
+                        or item.get("location_address")
                         or item.get("address")
+                        or item.get("place")
                         or item.get("venue")
+                        or item.get("ort")
                     ),
                     budget_per_person_eur=_to_int(item.get("budget_per_person_eur")),
                 )
@@ -167,6 +145,38 @@ class OpenAISuggestionProvider:
             )
 
         return drafts
+
+
+def build_openai_prompt_payload(context: SuggestionContext) -> tuple[str, dict[str, Any]]:
+    """Build system and user prompt payload for generation and debug preview."""
+    system_prompt = (
+        "You generate family-friendly and practical first-time activity ideas. "
+        "Return strict JSON with exactly the requested number of ideas. "
+        "Use either a JSON array or object key 'suggestions'. "
+        "Each item must include title and a concrete location with a googleable full address. "
+        "Avoid generic ideas without place names. "
+        "Prefer nearby places that satisfy max_travel_minutes from travel_origin. "
+        "Each item may include "
+        "description, category, courage_level, duration_minutes, cost_level, "
+        "travel_minutes, family_friendly, indoor_outdoor, weather_hint, notes, "
+        "location, location_address, budget_per_person_eur."
+    )
+
+    user_prompt = {
+        "count": context.suggestion_count,
+        "max_travel_minutes": context.max_travel_minutes,
+        "travel_origin": context.travel_origin,
+        "family_friendly_only": context.family_friendly_only,
+        "good_weather_only": context.good_weather_only,
+        "budget_per_person_eur": context.budget_per_person_eur,
+        "preferred_categories": context.preferred_categories,
+        "preferred_courage_levels": context.preferred_courage_levels,
+        "custom_interests": context.custom_interests,
+        "exclusions": context.exclusions,
+        "language": "de",
+        "location_format": "name, street, postal_code city, country",
+    }
+    return system_prompt, user_prompt
 
 
 def _parse_content_json(content: Any) -> Any:

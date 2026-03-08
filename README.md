@@ -52,6 +52,14 @@ Die Integration verbindet:
 
 ## Antichronologischer Changelog
 
+### v0.3.11 (2026-03-08)
+
+- UI: Ladebalken mit Laufzeitanzeige während der KI-Generierung ergänzt
+- UI: Im Debug-Modus wird vor dem Senden eine Prompt-Vorschau angezeigt (mit explizitem "jetzt senden")
+- Produktentscheidung umgesetzt: pro Klick genau 1 KI-Vorschlag (Auswahl im Panel entfernt)
+- API: neuer Endpoint für Prompt-Vorschau (`/api/nextfirst/ai/prompt_preview`)
+- KI-Parser verbessert: akzeptiert zusätzliche Location-Felder (`location_address`, `ort`) und bevorzugt normalisierte Adressen
+
 ### v0.3.10 (2026-03-08)
 
 - KI-Generierung-Hotfix: Vorschläge werden nicht mehr komplett verworfen, wenn Geocoding/Routing-Dienste temporär nicht antworten

@@ -29,7 +29,6 @@ from .const import (
     CONF_AI_MAX_TOKENS,
     CONF_AI_MODEL,
     CONF_AI_PROVIDER,
-    CONF_AI_SUGGESTION_COUNT,
     CONF_AI_TEMPERATURE,
     CONF_BUDGET_PER_PERSON_EUR,
     CONF_CUSTOM_INTERESTS,
@@ -120,10 +119,6 @@ class NextFirstOptionsFlow(config_entries.OptionsFlow):
                     ["openai"]
                 ),
                 vol.Optional(CONF_AI_MODEL, default=current[CONF_AI_MODEL]): str,
-                vol.Optional(
-                    CONF_AI_SUGGESTION_COUNT,
-                    default=current[CONF_AI_SUGGESTION_COUNT],
-                ): vol.All(int, vol.Range(min=1, max=20)),
                 vol.Optional(
                     CONF_BUDGET_PER_PERSON_EUR,
                     default=current[CONF_BUDGET_PER_PERSON_EUR],

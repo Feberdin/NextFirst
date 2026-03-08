@@ -27,8 +27,8 @@ from homeassistant.components.http import HomeAssistantView
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import aiohttp_client
 
-from .ai.service import generate_and_store_suggestions
-from .const import DEFAULT_OPTIONS, DOMAIN
+from .ai.service import build_prompt_preview, generate_and_store_suggestions
+from .const import CONF_DEBUG_ENABLED, DEFAULT_OPTIONS, DOMAIN
 from .errors import NextFirstError
 from .manager import NextFirstManager
 from .monthly_summary import build_monthly_summary
@@ -115,11 +115,13 @@ class NextFirstExperiencesView(NextFirstBaseView):
 
     async def get(self, request: web.Request) -> web.Response:
         manager = _get_manager(self.hass)
+        options = _get_options(self.hass)
         return web.json_response(
             {
                 "ok": True,
                 "items": manager.list_all(),
                 "stats": manager.get_statistics(),
+                "debug_enabled": bool(options.get(CONF_DEBUG_ENABLED, False)),
             }
         )
 
@@ -223,7 +225,6 @@ class NextFirstAIGenerateView(NextFirstBaseView):
 
     async def post(self, request: web.Request) -> web.Response:
         manager = _get_manager(self.hass)
-        body = await self._json_body(request)
         session = aiohttp_client.async_get_clientsession(self.hass)
 
         try:
@@ -231,9 +232,24 @@ class NextFirstAIGenerateView(NextFirstBaseView):
                 manager=manager,
                 session=session,
                 options=_get_options(self.hass),
-                count_override=body.get("count"),
+                count_override=1,
             )
             return web.json_response({"ok": True, "created": created, "count": len(created)})
+        except Exception as err:
+            return await self._error(err)
+
+
+class NextFirstAIPromptPreviewView(NextFirstBaseView):
+    """Return AI prompt preview for debugging before generation."""
+
+    url = "/api/nextfirst/ai/prompt_preview"
+    name = "api:nextfirst:ai_prompt_preview"
+
+    async def get(self, request: web.Request) -> web.Response:
+        try:
+            options = _get_options(self.hass)
+            preview = build_prompt_preview(options)
+            return web.json_response({"ok": True, "preview": preview})
         except Exception as err:
             return await self._error(err)
 
@@ -436,6 +452,7 @@ async def async_register_http_api(hass: HomeAssistant) -> None:
         NextFirstExperienceDetailView(hass),
         NextFirstActionView(hass),
         NextFirstAIGenerateView(hass),
+        NextFirstAIPromptPreviewView(hass),
         NextFirstMediaUploadView(hass),
         NextFirstMediaUploadJsonView(hass),
         NextFirstMonthlySummaryPreviewView(hass),

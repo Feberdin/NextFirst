@@ -26,6 +26,12 @@ class NextFirstPanel extends HTMLElement {
     this._protocolHistory = [];
     this._pendingMediaExperienceId = null;
     this._shareData = null;
+    this._debugEnabled = false;
+    this._aiPromptPreviewText = "";
+    this._aiGenerating = false;
+    this._aiProgressValue = 0;
+    this._aiProgressStartedAt = 0;
+    this._aiProgressTimer = null;
   }
 
   set hass(hass) {
@@ -49,6 +55,7 @@ class NextFirstPanel extends HTMLElement {
       const data = await this._api("get", "nextfirst/experiences");
       this._items = data.items || [];
       this._stats = data.stats || {};
+      this._debugEnabled = Boolean(data.debug_enabled);
       const history = await this._api("get", "nextfirst/protocol?limit=50");
       this._protocolHistory = history.history || [];
     } catch (err) {
@@ -204,17 +211,69 @@ class NextFirstPanel extends HTMLElement {
   }
 
   async _generateAI() {
-    const countRaw = prompt("Wie viele Vorschläge? (1-20)", "2");
-    const countDefaulted = countRaw === null ? null : countRaw.trim() || "2";
-    if (countDefaulted === null) return;
-    const count = Number(countDefaulted);
+    if (this._aiGenerating) return;
+    if (this._debugEnabled && !this._aiPromptPreviewText) {
+      try {
+        const res = await this._api("get", "nextfirst/ai/prompt_preview");
+        const preview = res.preview || {};
+        this._aiPromptPreviewText = [
+          `Provider: ${preview.provider || "-"}`,
+          `Modell: ${preview.model || "-"}`,
+          "",
+          "[System Prompt]",
+          String(preview.system_prompt || ""),
+          "",
+          "[User Prompt JSON]",
+          JSON.stringify(preview.user_prompt || {}, null, 2),
+        ].join("\n");
+        this._render();
+        return;
+      } catch (err) {
+        this._error = this._formatError(err);
+        this._render();
+        return;
+      }
+    }
+
+    this._startAiProgress();
     try {
-      await this._api("post", "nextfirst/ai/generate", { count: Number.isFinite(count) ? count : 2 });
+      await this._api("post", "nextfirst/ai/generate", {});
+      this._aiPromptPreviewText = "";
       await this._load();
     } catch (err) {
       this._error = this._formatError(err);
       this._render();
+    } finally {
+      this._stopAiProgress();
     }
+  }
+
+  _startAiProgress() {
+    this._aiGenerating = true;
+    this._aiProgressValue = 5;
+    this._aiProgressStartedAt = Date.now();
+    if (this._aiProgressTimer) clearInterval(this._aiProgressTimer);
+    this._aiProgressTimer = setInterval(() => {
+      if (!this._aiGenerating) return;
+      this._aiProgressValue = Math.min(90, this._aiProgressValue + 3);
+      this._render();
+    }, 400);
+    this._render();
+  }
+
+  _stopAiProgress() {
+    this._aiGenerating = false;
+    this._aiProgressValue = 100;
+    if (this._aiProgressTimer) {
+      clearInterval(this._aiProgressTimer);
+      this._aiProgressTimer = null;
+    }
+    this._render();
+    setTimeout(() => {
+      if (this._aiGenerating) return;
+      this._aiProgressValue = 0;
+      this._render();
+    }, 700);
   }
 
   async _previewMonthlySummary() {
@@ -504,6 +563,11 @@ class NextFirstPanel extends HTMLElement {
     this.shadowRoot.getElementById("createBtn")?.addEventListener("click", () => this._create());
     this.shadowRoot.getElementById("refreshBtn")?.addEventListener("click", () => this._load());
     this.shadowRoot.getElementById("aiBtn")?.addEventListener("click", () => this._generateAI());
+    this.shadowRoot.getElementById("aiPromptSendBtn")?.addEventListener("click", () => this._generateAI());
+    this.shadowRoot.getElementById("aiPromptCancelBtn")?.addEventListener("click", () => {
+      this._aiPromptPreviewText = "";
+      this._render();
+    });
     this.shadowRoot.getElementById("previewMonthlyBtn")?.addEventListener("click", () => this._previewMonthlySummary());
     this.shadowRoot.getElementById("shareMonthlyBtn")?.addEventListener("click", () => this._shareMonthlySummary());
 
@@ -540,6 +604,9 @@ class NextFirstPanel extends HTMLElement {
 
   _render() {
     const stats = this._stats || {};
+    const elapsed = this._aiGenerating && this._aiProgressStartedAt
+      ? Math.max(0, Math.round((Date.now() - this._aiProgressStartedAt) / 1000))
+      : 0;
     this.shadowRoot.innerHTML = `
       <style>
         :host { display:block; min-height:100%; color:var(--primary-text-color); background:linear-gradient(135deg, rgba(35,111,146,0.10), rgba(244,163,97,0.12)); font-family:"Avenir Next","Segoe UI",sans-serif; }
@@ -588,6 +655,10 @@ class NextFirstPanel extends HTMLElement {
         .history li { margin:8px 0; }
         .share-box { background:var(--card-background-color); border:1px solid rgba(127,127,127,0.2); border-radius:12px; padding:12px; margin-bottom:12px; }
         .share-box pre { white-space:pre-wrap; background:rgba(127,127,127,0.1); padding:8px; border-radius:8px; font-family:monospace; font-size:0.82rem; }
+        .ai-progress { background:var(--card-background-color); border:1px solid rgba(127,127,127,0.2); border-radius:12px; padding:10px; margin-bottom:12px; }
+        .ai-progress progress { width:100%; height:18px; }
+        .ai-preview { background:var(--card-background-color); border:1px solid rgba(127,127,127,0.2); border-radius:12px; padding:12px; margin-bottom:12px; }
+        .ai-preview pre { white-space:pre-wrap; background:rgba(127,127,127,0.1); padding:8px; border-radius:8px; font-family:monospace; font-size:0.8rem; max-height:280px; overflow:auto; }
       </style>
       <div class="wrap">
         <div class="top">
@@ -613,6 +684,25 @@ class NextFirstPanel extends HTMLElement {
           <button class="tab ${this._tab === "protocol" ? "active" : ""}" data-tab="protocol">Protokoll</button>
           <button class="tab ${this._tab === "album" ? "active" : ""}" data-tab="album">Album</button>
         </div>
+
+        ${this._aiProgressValue > 0 ? `
+          <div class="ai-progress">
+            <strong>KI-Vorschlag wird generiert ...</strong>
+            <div>${this._aiProgressValue}%${this._aiGenerating ? ` | ${elapsed}s` : ""}</div>
+            <progress value="${this._aiProgressValue}" max="100"></progress>
+          </div>
+        ` : ""}
+
+        ${this._aiPromptPreviewText ? `
+          <div class="ai-preview">
+            <strong>Debug: Prompt-Vorschau (vor dem Senden)</strong>
+            <pre>${this._escape(this._aiPromptPreviewText)}</pre>
+            <div class="actions">
+              <button id="aiPromptSendBtn">KI jetzt senden (1 Vorschlag)</button>
+              <button id="aiPromptCancelBtn" class="danger">Abbrechen</button>
+            </div>
+          </div>
+        ` : ""}
 
         ${this._shareData ? `
           <div class="share-box">
