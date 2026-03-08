@@ -209,7 +209,7 @@ class NextFirstPanel extends HTMLElement {
     if (countDefaulted === null) return;
     const count = Number(countDefaulted);
     try {
-      await this._api("post", "nextfirst/ai/generate", { count: Number.isFinite(count) ? count : 5 });
+      await this._api("post", "nextfirst/ai/generate", { count: Number.isFinite(count) ? count : 2 });
       await this._load();
     } catch (err) {
       this._error = this._formatError(err);
@@ -274,6 +274,67 @@ class NextFirstPanel extends HTMLElement {
     return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&location=${location}&details=${details}`;
   }
 
+  _calendarIcs(item) {
+    const now = new Date();
+    const start = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+    start.setHours(10, 0, 0, 0);
+    const end = new Date(start.getTime() + 2 * 60 * 60 * 1000);
+
+    const formatUtc = (date) => {
+      const pad = (n) => String(n).padStart(2, "0");
+      return `${date.getUTCFullYear()}${pad(date.getUTCMonth() + 1)}${pad(date.getUTCDate())}T${pad(
+        date.getUTCHours()
+      )}${pad(date.getUTCMinutes())}${pad(date.getUTCSeconds())}Z`;
+    };
+
+    const esc = (value) =>
+      String(value || "")
+        .replaceAll("\\", "\\\\")
+        .replaceAll("\n", "\\n")
+        .replaceAll(",", "\\,")
+        .replaceAll(";", "\\;");
+
+    const uid = `${item?.id || "nextfirst"}@nextfirst.local`;
+    const summary = esc(item?.title || "NextFirst Erlebnis");
+    const location = esc(item?.location || "");
+    const description = esc(item?.description || "Neues Erlebnis mit NextFirst");
+
+    return [
+      "BEGIN:VCALENDAR",
+      "VERSION:2.0",
+      "PRODID:-//NextFirst//Home Assistant//DE",
+      "CALSCALE:GREGORIAN",
+      "METHOD:PUBLISH",
+      "BEGIN:VEVENT",
+      `UID:${uid}`,
+      `DTSTAMP:${formatUtc(now)}`,
+      `DTSTART:${formatUtc(start)}`,
+      `DTEND:${formatUtc(end)}`,
+      `SUMMARY:${summary}`,
+      `LOCATION:${location}`,
+      `DESCRIPTION:${description}`,
+      "END:VEVENT",
+      "END:VCALENDAR",
+      "",
+    ].join("\r\n");
+  }
+
+  _downloadCalendarIcs(item) {
+    const content = this._calendarIcs(item);
+    const blob = new Blob([content], { type: "text/calendar;charset=utf-8" });
+    const link = document.createElement("a");
+    const title = String(item?.title || "nextfirst-erlebnis")
+      .toLowerCase()
+      .replaceAll(/[^a-z0-9]+/g, "-")
+      .replaceAll(/^-+|-+$/g, "");
+    link.href = URL.createObjectURL(blob);
+    link.download = `${title || "nextfirst-erlebnis"}.ics`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(link.href);
+  }
+
   _openShareBox(text, urls) {
     this._shareData = { text: text || "", urls: urls || {} };
     this._render();
@@ -301,8 +362,11 @@ class NextFirstPanel extends HTMLElement {
     const category = item.category ? `<span class="pill">${this._escape(item.category)}</span>` : "";
     const courage = item.courage_level ? `<span class="pill">Mut: ${this._escape(item.courage_level)}</span>` : "";
     const location = item.location ? `<span class="pill">Ort: ${this._escape(item.location)}</span>` : "";
-    const budget = Number.isFinite(Number(item.budget_per_person_eur))
-      ? `<span class="pill">Budget/Person: ${this._escape(item.budget_per_person_eur)} EUR</span>`
+    const budgetRaw = item.budget_per_person_eur ?? item.extra?.estimated_budget_per_person_eur;
+    const budgetText = String(budgetRaw ?? "").trim();
+    const budgetValue = budgetText ? Number(budgetText) : NaN;
+    const budget = Number.isFinite(budgetValue)
+      ? `<span class="pill">Budget/Person: ${this._escape(budgetValue)} EUR</span>`
       : "";
     const mapsUrl = this._mapsUrl(item.location);
     const calendarUrl = this._calendarUrl(item);
@@ -314,7 +378,8 @@ class NextFirstPanel extends HTMLElement {
         <button data-action="skip" data-id="${item.id}">Überspringen</button>
         <button data-action="experience" data-id="${item.id}">Als erlebt markieren</button>
         ${mapsUrl ? `<a class="action-link" href="${this._escape(mapsUrl)}" target="_blank" rel="noopener noreferrer">Maps</a>` : ""}
-        <a class="action-link" href="${this._escape(calendarUrl)}" target="_blank" rel="noopener noreferrer">Kalender</a>
+        <button data-action="calendar_ics" data-id="${item.id}">Kalender (.ics)</button>
+        <a class="action-link" href="${this._escape(calendarUrl)}" target="_blank" rel="noopener noreferrer">Google Kalender</a>
         <button class="danger" data-action="delete" data-id="${item.id}">Löschen</button>
       `;
     } else if (item.status === "skipped") {
@@ -322,7 +387,8 @@ class NextFirstPanel extends HTMLElement {
         <button data-action="reactivate" data-id="${item.id}">Zurück zu offen</button>
         <button data-action="edit" data-id="${item.id}">Bearbeiten</button>
         ${mapsUrl ? `<a class="action-link" href="${this._escape(mapsUrl)}" target="_blank" rel="noopener noreferrer">Maps</a>` : ""}
-        <a class="action-link" href="${this._escape(calendarUrl)}" target="_blank" rel="noopener noreferrer">Kalender</a>
+        <button data-action="calendar_ics" data-id="${item.id}">Kalender (.ics)</button>
+        <a class="action-link" href="${this._escape(calendarUrl)}" target="_blank" rel="noopener noreferrer">Google Kalender</a>
         <button class="danger" data-action="delete" data-id="${item.id}">Löschen</button>
       `;
     } else {
@@ -331,7 +397,8 @@ class NextFirstPanel extends HTMLElement {
         <button data-action="media" data-id="${item.id}">Bild hinzufügen</button>
         <button data-action="share" data-id="${item.id}">Teilen</button>
         ${mapsUrl ? `<a class="action-link" href="${this._escape(mapsUrl)}" target="_blank" rel="noopener noreferrer">Maps</a>` : ""}
-        <a class="action-link" href="${this._escape(calendarUrl)}" target="_blank" rel="noopener noreferrer">Kalender</a>
+        <button data-action="calendar_ics" data-id="${item.id}">Kalender (.ics)</button>
+        <a class="action-link" href="${this._escape(calendarUrl)}" target="_blank" rel="noopener noreferrer">Google Kalender</a>
         <button data-action="archive" data-id="${item.id}">Ins Archiv</button>
         <button data-action="reactivate" data-id="${item.id}">Erneut planen</button>
       `;
@@ -466,6 +533,7 @@ class NextFirstPanel extends HTMLElement {
         if (action === "note") return this._addNote(id, item?.notes);
         if (action === "share") return this._shareExperience(id, item?.title || "Unbenannt");
         if (action === "archive") return this._action(id, "archive");
+        if (action === "calendar_ics") return this._downloadCalendarIcs(item);
       });
     });
   }

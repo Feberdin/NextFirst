@@ -52,6 +52,15 @@ Die Integration verbindet:
 
 ## Antichronologischer Changelog
 
+### v0.3.9 (2026-03-08)
+
+- KI-Standard auf 2 Vorschläge vereinheitlicht (UI + Backend-Fallback)
+- Fahrzeitprüfung verbessert: `travel_origin` (z. B. `zone.home`) wird auf Koordinaten aufgelöst
+- KI-Vorschläge ohne konkrete Location werden verworfen
+- Vorschläge außerhalb der maximalen Fahrzeit werden per Geocoding/Routing herausgefiltert
+- Kalenderaktion erweitert: `.ics`-Download plus separater Google-Kalender-Link
+- Budget-Pill im Dashboard robust gemacht (kein leeres `EUR` mehr)
+
 ### v0.3.4 (2026-03-08)
 
 - Sensor-Fix für aktuelle HA-EntityDescription

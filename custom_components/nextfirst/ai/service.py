@@ -49,6 +49,87 @@ from .providers.openai import OpenAISuggestionProvider
 _LOGGER = logging.getLogger(__name__)
 
 
+def _resolve_origin_coordinates(manager: NextFirstManager, travel_origin: str) -> tuple[float, float] | None:
+    """Resolve travel origin from entity id (for example zone.home) or 'lat,lon' text."""
+    raw = str(travel_origin or "").strip()
+    if not raw:
+        return None
+
+    if "," in raw:
+        try:
+            lat_s, lon_s = [part.strip() for part in raw.split(",", maxsplit=1)]
+            return (float(lat_s), float(lon_s))
+        except (TypeError, ValueError):
+            return None
+
+    state = manager.hass.states.get(raw)
+    if state is None:
+        return None
+    lat = state.attributes.get("latitude")
+    lon = state.attributes.get("longitude")
+    if lat is None or lon is None:
+        return None
+    try:
+        return (float(lat), float(lon))
+    except (TypeError, ValueError):
+        return None
+
+
+async def _geocode_location(
+    session: ClientSession,
+    location: str,
+) -> tuple[float, float] | None:
+    """Resolve a human-readable location to coordinates via Nominatim."""
+    query = str(location or "").strip()
+    if not query:
+        return None
+    try:
+        async with session.get(
+            "https://nominatim.openstreetmap.org/search",
+            params={"q": query, "format": "jsonv2", "limit": 1},
+            headers={"User-Agent": "NextFirst/0.3"},
+            timeout=20,
+        ) as resp:
+            if resp.status >= 400:
+                return None
+            payload = await resp.json(content_type=None)
+            if not payload:
+                return None
+            first = payload[0]
+            return (float(first["lat"]), float(first["lon"]))
+    except Exception:
+        return None
+
+
+async def _estimate_drive_minutes(
+    session: ClientSession,
+    origin: tuple[float, float],
+    dest: tuple[float, float],
+) -> int | None:
+    """Estimate drive duration in minutes using OSRM public routing API."""
+    try:
+        async with session.get(
+            (
+                "https://router.project-osrm.org/route/v1/driving/"
+                f"{origin[1]},{origin[0]};{dest[1]},{dest[0]}"
+            ),
+            params={"overview": "false"},
+            timeout=20,
+        ) as resp:
+            if resp.status >= 400:
+                return None
+            payload = await resp.json(content_type=None)
+            routes = payload.get("routes") or []
+            if not routes:
+                return None
+            seconds = float(routes[0].get("duration", 0))
+            if seconds <= 0:
+                return None
+            return int(round(seconds / 60))
+    except Exception:
+        return None
+
+
 async def generate_and_store_suggestions(
     manager: NextFirstManager,
     session: ClientSession,
@@ -68,7 +149,7 @@ async def generate_and_store_suggestions(
             f"Unsupported AI provider '{provider_name}'. Fix: use provider 'openai'."
         )
 
-    suggestion_count = int(count_override or options.get(CONF_AI_SUGGESTION_COUNT, 5))
+    suggestion_count = int(count_override or options.get(CONF_AI_SUGGESTION_COUNT, 2))
     target_count = max(1, min(suggestion_count, 20))
     context = SuggestionContext(
         suggestion_count=target_count,
@@ -82,6 +163,7 @@ async def generate_and_store_suggestions(
         custom_interests=str(options.get(CONF_CUSTOM_INTERESTS, "")),
         exclusions=str(options.get(CONF_EXCLUSIONS, "")),
     )
+    origin_coords = _resolve_origin_coordinates(manager, context.travel_origin)
 
     provider = OpenAISuggestionProvider(
         session=session,
@@ -117,6 +199,18 @@ async def generate_and_store_suggestions(
             if not key or key in seen_titles:
                 continue
             if not str(draft.location or "").strip():
+                continue
+            if origin_coords is not None:
+                coords = await _geocode_location(session, str(draft.location))
+                if coords is None:
+                    continue
+                drive_minutes = await _estimate_drive_minutes(session, origin_coords, coords)
+                if drive_minutes is None:
+                    continue
+                if drive_minutes > context.max_travel_minutes:
+                    continue
+                draft.travel_minutes = drive_minutes
+            elif draft.travel_minutes is not None and draft.travel_minutes > context.max_travel_minutes:
                 continue
             seen_titles.add(key)
             drafts.append(draft)
