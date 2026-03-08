@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.3 - 2026-03-08
+
+- Hotfix: OptionsFlow Konstruktor für diese HA-Version korrigiert (`NextFirstOptionsFlow(config_entry)`)
+- Hotfix: Sensor-Description kompatibel gemacht (`entity_registry_enabled_default` ergänzt)
+- Hotfix: Panel-Registrierung und Cleanup für sync/async Frontend-API abgesichert
+
 ## 0.3.2 - 2026-03-08
 
 - Hotfix: Sensor-Importfehler behoben (Dataclass-Feldreihenfolge in `sensor.py` korrigiert)

@@ -52,6 +52,10 @@ Die Integration verbindet:
 
 ## Antichronologischer Changelog
 
+### v0.3.3 (2026-03-08)
+
+- Hotfix für verbleibende Setup-Fehler aus dem HA-Log (OptionsFlow, Sensor-Description, Panel sync/async)
+
 ### v0.3.2 (2026-03-08)
 
 - Hotfix: ImportError in `sensor.py` behoben

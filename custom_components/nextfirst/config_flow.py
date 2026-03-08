@@ -99,6 +99,10 @@ class NextFirstConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 class NextFirstOptionsFlow(config_entries.OptionsFlow):
     """Handle options flow for NextFirst runtime settings."""
 
+    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
+        # Do not assign to `self.config_entry` because newer HA exposes it read-only.
+        self._entry = config_entry
+
     async def async_step_init(self, user_input: dict[str, Any] | None = None):
         """Edit integration options with safe defaults."""
         if user_input is not None:
@@ -112,7 +116,7 @@ class NextFirstOptionsFlow(config_entries.OptionsFlow):
             return self.async_create_entry(title="", data=normalized)
 
         current = dict(DEFAULT_OPTIONS)
-        current.update(self.config_entry.options)
+        current.update(self._entry.options)
 
         schema = vol.Schema(
             {

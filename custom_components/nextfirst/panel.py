@@ -17,6 +17,7 @@ Debugging:
 from __future__ import annotations
 
 import logging
+from inspect import isawaitable
 from pathlib import Path
 
 from homeassistant.components import frontend
@@ -41,7 +42,7 @@ async def async_setup_panel(hass: HomeAssistant) -> None:
         _LOGGER.debug("NextFirst static path already registered", exc_info=True)
 
     try:
-        await frontend.async_register_built_in_panel(
+        register_result = frontend.async_register_built_in_panel(
             hass,
             component_name="custom",
             frontend_url_path=PANEL_PATH,
@@ -57,6 +58,8 @@ async def async_setup_panel(hass: HomeAssistant) -> None:
             },
             require_admin=False,
         )
+        if isawaitable(register_result):
+            await register_result
     except Exception:  # pragma: no cover - idempotent setup on reload
         _LOGGER.debug("NextFirst panel already registered", exc_info=True)
 
@@ -66,6 +69,8 @@ async def async_setup_panel(hass: HomeAssistant) -> None:
 async def async_unload_panel(hass: HomeAssistant) -> None:
     """Remove the sidebar panel on integration unload."""
     try:
-        await frontend.async_remove_panel(hass, PANEL_PATH)
+        remove_result = frontend.async_remove_panel(hass, PANEL_PATH)
+        if isawaitable(remove_result):
+            await remove_result
     except Exception:  # pragma: no cover - defensive cleanup
         _LOGGER.debug("NextFirst panel cleanup skipped", exc_info=True)

@@ -39,6 +39,7 @@ class NextFirstSensorDescription:
     icon: str
     value_getter: Callable[[dict[str, Any]], Any]
     device_class: str | None = None
+    entity_registry_enabled_default: bool = True
     attributes_getter: Callable[[dict[str, Any]], dict[str, Any]] | None = None
 
 
