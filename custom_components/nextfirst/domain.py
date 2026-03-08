@@ -335,4 +335,5 @@ def default_root_document() -> dict[str, Any]:
         ],
         "stats_cache": {},
         "settings_snapshot": {},
+        "social_history": [],
     }

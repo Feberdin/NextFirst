@@ -25,6 +25,8 @@ class NextFirstPanel extends HTMLElement {
     this._loading = false;
     this._error = "";
     this._ready = false;
+    this._summaryPreview = null;
+    this._socialHistory = [];
   }
 
   set hass(hass) {
@@ -52,6 +54,8 @@ class NextFirstPanel extends HTMLElement {
       const data = await this._api("get", "nextfirst/experiences");
       this._items = data.items || [];
       this._stats = data.stats || {};
+      const history = await this._api("get", "nextfirst/share/history?limit=20");
+      this._socialHistory = history.history || [];
     } catch (err) {
       this._error = err?.message || String(err);
     } finally {
@@ -166,6 +170,48 @@ class NextFirstPanel extends HTMLElement {
     }
   }
 
+  async _previewMonthlySummary() {
+    try {
+      const res = await this._api("get", "nextfirst/monthly_summary/preview");
+      this._summaryPreview = res.summary || null;
+      this._render();
+    } catch (err) {
+      this._error = err?.message || String(err);
+      this._render();
+    }
+  }
+
+  async _shareMonthlySummary() {
+    const text = prompt("Optional eigener Text für Monatsrückblick:", "") ?? "";
+    const hashtags = prompt("Hashtags (CSV, optional):", "") ?? "";
+    try {
+      await this._api("post", "nextfirst/share/monthly", {
+        text: text.trim() || undefined,
+        hashtags: hashtags.trim() || undefined,
+      });
+      await this._load();
+    } catch (err) {
+      this._error = err?.message || String(err);
+      this._render();
+    }
+  }
+
+  async _shareExperience(id, defaultTitle) {
+    const text =
+      prompt("Optional eigener Share-Text:", `Neues NextFirst Erlebnis: ${defaultTitle}`) ?? "";
+    const hashtags = prompt("Hashtags (CSV, optional):", "") ?? "";
+    try {
+      await this._api("post", `nextfirst/share/experience/${id}`, {
+        text: text.trim() || undefined,
+        hashtags: hashtags.trim() || undefined,
+      });
+      await this._load();
+    } catch (err) {
+      this._error = err?.message || String(err);
+      this._render();
+    }
+  }
+
   _renderCard(item) {
     const mediaCount = item.media?.length || 0;
     const category = item.category ? `<span class="pill">${this._escape(item.category)}</span>` : "";
@@ -191,6 +237,7 @@ class NextFirstPanel extends HTMLElement {
       actions = `
         <button data-action="note" data-id="${item.id}">Notiz bearbeiten</button>
         <button data-action="media" data-id="${item.id}">Bild hinzufügen</button>
+        <button data-action="share" data-id="${item.id}">Teilen</button>
         <button data-action="archive" data-id="${item.id}">Ins Archiv</button>
         <button data-action="reactivate" data-id="${item.id}">Erneut planen</button>
       `;
@@ -253,6 +300,33 @@ class NextFirstPanel extends HTMLElement {
       return items.map((item) => this._renderCard(item)).join("\n");
     }
 
+    if (this._tab === "social") {
+      const preview = this._summaryPreview
+        ? `<div class="state"><strong>Monatsvorschau:</strong><br>${this._escape(this._summaryPreview.summary_text || "")}</div>`
+        : `<div class="state">Noch keine Monatsvorschau geladen.</div>`;
+      const history = this._socialHistory.length
+        ? `<ul class="history">${this._socialHistory
+            .map(
+              (h) =>
+                `<li><strong>${this._escape(h.timestamp || "-")}</strong> | ${this._escape(
+                  h.provider || "-"
+                )} | ${this._escape(h.source_type || "-")} | ${this._escape(
+                  String(h.ok)
+                )}<br>${this._escape(h.message || "")}</li>`
+            )
+            .join("")}</ul>`
+        : `<div class="state">Noch keine Share-Historie vorhanden.</div>`;
+
+      return `
+        <div class="toolbar">
+          <button id="previewMonthlyBtn">Monatsvorschau laden</button>
+          <button id="shareMonthlyBtn">Monatsrückblick teilen</button>
+        </div>
+        ${preview}
+        ${history}
+      `;
+    }
+
     const album = this._albumItems();
     if (!album.length) return `<div class="state">Album ist noch leer.</div>`;
     return `<section class="album-grid">${album.map((item) => this._renderAlbumItem(item)).join("\n")}</section>`;
@@ -269,6 +343,12 @@ class NextFirstPanel extends HTMLElement {
     this.shadowRoot.getElementById("createBtn")?.addEventListener("click", () => this._create());
     this.shadowRoot.getElementById("refreshBtn")?.addEventListener("click", () => this._load());
     this.shadowRoot.getElementById("aiBtn")?.addEventListener("click", () => this._generateAI());
+    this.shadowRoot
+      .getElementById("previewMonthlyBtn")
+      ?.addEventListener("click", () => this._previewMonthlySummary());
+    this.shadowRoot
+      .getElementById("shareMonthlyBtn")
+      ?.addEventListener("click", () => this._shareMonthlySummary());
 
     this.shadowRoot.querySelectorAll("button[data-action]").forEach((btn) => {
       btn.addEventListener("click", async () => {
@@ -284,6 +364,7 @@ class NextFirstPanel extends HTMLElement {
         if (action === "delete") return this._delete(id);
         if (action === "media") return this._addMedia(id);
         if (action === "note") return this._addNote(id, item?.notes);
+        if (action === "share") return this._shareExperience(id, item?.title || "Unbenannt");
         if (action === "archive") return this._action(id, "archive");
       });
     });
@@ -447,6 +528,13 @@ class NextFirstPanel extends HTMLElement {
         .album-content h3 {
           margin: 0 0 6px;
         }
+        .history {
+          margin: 12px 0 0;
+          padding: 0 0 0 18px;
+        }
+        .history li {
+          margin: 8px 0;
+        }
       </style>
       <div class="wrap">
         <div class="top">
@@ -469,6 +557,7 @@ class NextFirstPanel extends HTMLElement {
           <button class="tab ${this._tab === "open" ? "active" : ""}" data-tab="open">Offen</button>
           <button class="tab ${this._tab === "skipped" ? "active" : ""}" data-tab="skipped">Übersprungen</button>
           <button class="tab ${this._tab === "experienced" ? "active" : ""}" data-tab="experienced">Erlebt</button>
+          <button class="tab ${this._tab === "social" ? "active" : ""}" data-tab="social">Social</button>
           <button class="tab ${this._tab === "album" ? "active" : ""}" data-tab="album">Album</button>
         </div>
 

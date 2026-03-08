@@ -367,6 +367,7 @@ Bereits vorbereitet:
   - `social/` (provider-neutrale Posting-Schnittstellen)
   - `media_processing/` (privacy-sichere Bild-Transform-Pipeline)
   - `monthly_summary.py` (lokale Recap-Generierung)
+  - `scheduler.py` (monatlicher Trigger nach konfigurierbarem Intervall)
 
 Datenschutz-Guardrails:
 
@@ -374,3 +375,9 @@ Datenschutz-Guardrails:
 - Bild-Preprocessing bleibt standardmäßig deaktiviert (Opt-in).
 - Kinderbild-Schutzmodus konfigurierbar (`none`, `blur_kids`, `ai_stylize`).
 - Provider-Adapter müssen vor Aktivierung klare Datenschutzhinweise anzeigen.
+
+Aktueller Implementierungsstand:
+
+- Social Provider live: `webhook`, `mastodon`, `bluesky`
+- Debug-Schalter (`debug_enabled`) über Options Flow
+- Share-Historie persistent gespeichert und abrufbar

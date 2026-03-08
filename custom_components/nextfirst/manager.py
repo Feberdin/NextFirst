@@ -76,6 +76,7 @@ class NextFirstManager:
         """Persist runtime state and notify entities/listeners in one place."""
         self._doc["updated_at"] = utc_now_iso()
         self._doc["experiences"] = [exp.to_dict() for exp in self._experiences.values()]
+        self._doc.setdefault("social_history", [])
         await self.storage.async_save(self._doc)
         async_dispatcher_send(self.hass, SIGNAL_DATA_CHANGED)
 
@@ -246,6 +247,7 @@ class NextFirstManager:
             "experienced_this_month": self._experienced_this_month(),
             "last_ai_generation": self.last_ai_generation,
             "album_recent": [self._album_item(e) for e in experienced_sorted[:20]],
+            "social_shares_total": len(self._doc.get("social_history", [])),
         }
 
     def _experienced_this_month(self) -> int:
@@ -279,3 +281,33 @@ class NextFirstManager:
             e.to_dict()
             for e in sorted(self._experiences.values(), key=lambda x: x.updated_at, reverse=True)
         ]
+
+    async def async_record_share_event(
+        self,
+        *,
+        source_type: str,
+        source_id: str | None,
+        provider: str,
+        ok: bool,
+        message: str,
+    ) -> dict[str, Any]:
+        """Persist one social sharing attempt for traceability and debugging."""
+        async with self._lock:
+            event = {
+                "timestamp": utc_now_iso(),
+                "source_type": source_type,
+                "source_id": source_id,
+                "provider": provider,
+                "ok": ok,
+                "message": message,
+            }
+            self._doc.setdefault("social_history", [])
+            self._doc["social_history"].append(event)
+            self._doc["social_history"] = self._doc["social_history"][-200:]
+            await self._persist_and_notify()
+            return event
+
+    def get_share_history(self, limit: int = 50) -> list[dict[str, Any]]:
+        """Return newest social share events first."""
+        history = list(self._doc.get("social_history", []))
+        return list(reversed(history[-max(1, limit) :]))

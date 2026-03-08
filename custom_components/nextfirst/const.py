@@ -39,6 +39,11 @@ CONF_CUSTOM_INTERESTS = "custom_interests"
 CONF_EXCLUSIONS = "exclusions"
 CONF_SOCIAL_ENABLED = "social_enabled"
 CONF_SOCIAL_PROVIDER = "social_provider"
+CONF_SOCIAL_WEBHOOK_URL = "social_webhook_url"
+CONF_SOCIAL_MASTODON_BASE_URL = "social_mastodon_base_url"
+CONF_SOCIAL_MASTODON_ACCESS_TOKEN = "social_mastodon_access_token"
+CONF_SOCIAL_BLUESKY_HANDLE = "social_bluesky_handle"
+CONF_SOCIAL_BLUESKY_APP_PASSWORD = "social_bluesky_app_password"
 CONF_SOCIAL_AUTO_SHARE_MONTHLY = "social_auto_share_monthly"
 CONF_SOCIAL_DEFAULT_HASHTAGS = "social_default_hashtags"
 CONF_SOCIAL_INCLUDE_AI_TEXT = "social_include_ai_text"
@@ -48,6 +53,7 @@ CONF_SOCIAL_IMAGE_PREPROCESS_PROMPT = "social_image_preprocess_prompt"
 CONF_MONTHLY_SUMMARY_ENABLED = "monthly_summary_enabled"
 CONF_MONTHLY_SUMMARY_DAY = "monthly_summary_day"
 CONF_MONTHLY_SUMMARY_HOUR = "monthly_summary_hour"
+CONF_DEBUG_ENABLED = "debug_enabled"
 
 DEFAULT_OPTIONS = {
     CONF_AI_ENABLED: False,
@@ -66,6 +72,11 @@ DEFAULT_OPTIONS = {
     CONF_EXCLUSIONS: "",
     CONF_SOCIAL_ENABLED: False,
     CONF_SOCIAL_PROVIDER: "none",
+    CONF_SOCIAL_WEBHOOK_URL: "",
+    CONF_SOCIAL_MASTODON_BASE_URL: "",
+    CONF_SOCIAL_MASTODON_ACCESS_TOKEN: "",
+    CONF_SOCIAL_BLUESKY_HANDLE: "",
+    CONF_SOCIAL_BLUESKY_APP_PASSWORD: "",
     CONF_SOCIAL_AUTO_SHARE_MONTHLY: False,
     CONF_SOCIAL_DEFAULT_HASHTAGS: "",
     CONF_SOCIAL_INCLUDE_AI_TEXT: False,
@@ -75,6 +86,7 @@ DEFAULT_OPTIONS = {
     CONF_MONTHLY_SUMMARY_ENABLED: False,
     CONF_MONTHLY_SUMMARY_DAY: 1,
     CONF_MONTHLY_SUMMARY_HOUR: 9,
+    CONF_DEBUG_ENABLED: False,
 }
 
 SIGNAL_DATA_CHANGED = f"{DOMAIN}_data_changed"
@@ -93,3 +105,4 @@ SERVICE_GET_ALBUM = "get_album"
 SERVICE_PREVIEW_MONTHLY_SUMMARY = "preview_monthly_summary"
 SERVICE_SHARE_EXPERIENCE = "share_experience"
 SERVICE_SHARE_MONTHLY_SUMMARY = "share_monthly_summary"
+SERVICE_GET_SHARE_HISTORY = "get_share_history"

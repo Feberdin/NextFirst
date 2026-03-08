@@ -24,7 +24,8 @@ Die Integration verbindet:
 
 - Konfigurationsgrundlagen für Social Sharing, Monatsrückblick und Bild-Preprocessing sind integriert
 - Neue Services: `nextfirst.preview_monthly_summary`, `nextfirst.share_experience`, `nextfirst.share_monthly_summary`
-- Provider-Anbindung folgt im nächsten Schritt (aktuell bewusste Placeholder mit klaren Hinweisen)
+- Social Provider integriert: `webhook`, `mastodon`, `bluesky`
+- Debug-Schalter in Optionen (`debug_enabled`) ergänzt
 
 - Eigener Sidebar-Panel-Eintrag `NextFirst`
 - Vier Hauptansichten im Panel:
@@ -50,6 +51,14 @@ Die Integration verbindet:
 - [License](LICENSE)
 
 ## Antichronologischer Changelog
+
+### v0.3.0 (2026-03-08)
+
+- Social Provider integriert: `webhook`, `mastodon`, `bluesky`
+- Social-Tab im Panel ergänzt (Erlebnis teilen, Monatsrückblick teilen, Historie)
+- Monats-Scheduler für automatische Zusammenfassung mit optionalem Auto-Share
+- Debug-Schalter in den Optionen ergänzt (`debug_enabled`)
+- Kinderbild-Schutzregel vor Social-Posting ergänzt (Guardrail mit optionaler Preprocessing-Pipeline)
 
 ### v0.2.1 (2026-03-08)
 

@@ -28,6 +28,10 @@ from .ai.service import generate_and_store_suggestions
 from .const import DEFAULT_OPTIONS, DOMAIN
 from .errors import NextFirstError
 from .manager import NextFirstManager
+from .media_processing.service import preprocess_social_media
+from .monthly_summary import build_monthly_summary
+from .social.base import SocialPostRequest
+from .social.service import post_to_social
 
 
 def _get_runtime(hass: HomeAssistant) -> dict[str, Any]:
@@ -205,6 +209,144 @@ class NextFirstAIGenerateView(NextFirstBaseView):
             return self._error(err)
 
 
+class NextFirstMonthlySummaryPreviewView(NextFirstBaseView):
+    """Return monthly summary preview payload for UI and automations."""
+
+    url = "/api/nextfirst/monthly_summary/preview"
+    name = "api:nextfirst:monthly_summary_preview"
+
+    async def get(self, request: web.Request) -> web.Response:
+        manager = _get_manager(self.hass)
+        month = request.query.get("month") or __import__("datetime").datetime.utcnow().strftime("%Y-%m")
+        try:
+            summary = build_monthly_summary(manager.list_all(), str(month))
+            return web.json_response({"ok": True, "summary": summary})
+        except Exception as err:
+            return self._error(err)
+
+
+class NextFirstShareExperienceView(NextFirstBaseView):
+    """Share one experience via configured social provider."""
+
+    url = "/api/nextfirst/share/experience/{experience_id}"
+    name = "api:nextfirst:share_experience"
+
+    async def post(self, request: web.Request, experience_id: str) -> web.Response:
+        manager = _get_manager(self.hass)
+        body = await self._json_body(request)
+        entry = next((item for item in manager.list_all() if item.get("id") == experience_id), None)
+        if entry is None:
+            return web.json_response({"ok": False, "error": "Experience not found."}, status=404)
+
+        text = str(body.get("text") or f"Neues NextFirst Erlebnis: {entry.get('title', 'Unbenannt')}")
+        hashtags = [t.strip() for t in str(body.get("hashtags", "")).split(",") if t.strip()]
+        media_paths = [
+            str(media.get("path"))
+            for media in (entry.get("media") or [])
+            if isinstance(media, dict) and media.get("path")
+        ]
+        try:
+            opts = _get_options(self.hass)
+            pre = await preprocess_social_media(opts, media_paths)
+            session = aiohttp_client.async_get_clientsession(self.hass)
+            result = await post_to_social(
+                opts,
+                SocialPostRequest(
+                    text=text,
+                    media_paths=pre.transformed_paths,
+                    hashtags=hashtags,
+                    source_type="experience",
+                    source_id=experience_id,
+                ),
+                session=session,
+            )
+            event = await manager.async_record_share_event(
+                source_type="experience",
+                source_id=experience_id,
+                provider=result.provider_name,
+                ok=result.ok,
+                message=result.message,
+            )
+            return web.json_response(
+                {
+                    "ok": result.ok,
+                    "result": {
+                        "ok": result.ok,
+                        "provider_name": result.provider_name,
+                        "external_post_id": result.external_post_id,
+                        "message": result.message,
+                    },
+                    "event": event,
+                }
+            )
+        except Exception as err:
+            return self._error(err)
+
+
+class NextFirstShareMonthlyView(NextFirstBaseView):
+    """Share monthly summary via configured social provider."""
+
+    url = "/api/nextfirst/share/monthly"
+    name = "api:nextfirst:share_monthly"
+
+    async def post(self, request: web.Request) -> web.Response:
+        manager = _get_manager(self.hass)
+        body = await self._json_body(request)
+        month = str(body.get("month") or __import__("datetime").datetime.utcnow().strftime("%Y-%m"))
+        summary = build_monthly_summary(manager.list_all(), month)
+        text = str(body.get("text") or summary["summary_text"])
+        hashtags = [t.strip() for t in str(body.get("hashtags", "")).split(",") if t.strip()]
+        try:
+            opts = _get_options(self.hass)
+            session = aiohttp_client.async_get_clientsession(self.hass)
+            result = await post_to_social(
+                opts,
+                SocialPostRequest(
+                    text=text,
+                    hashtags=hashtags,
+                    source_type="monthly_summary",
+                    source_id=month,
+                ),
+                session=session,
+            )
+            event = await manager.async_record_share_event(
+                source_type="monthly_summary",
+                source_id=month,
+                provider=result.provider_name,
+                ok=result.ok,
+                message=result.message,
+            )
+            return web.json_response(
+                {
+                    "ok": result.ok,
+                    "result": {
+                        "ok": result.ok,
+                        "provider_name": result.provider_name,
+                        "external_post_id": result.external_post_id,
+                        "message": result.message,
+                    },
+                    "event": event,
+                }
+            )
+        except Exception as err:
+            return self._error(err)
+
+
+class NextFirstShareHistoryView(NextFirstBaseView):
+    """Return social share history for UI timeline/debugging."""
+
+    url = "/api/nextfirst/share/history"
+    name = "api:nextfirst:share_history"
+
+    async def get(self, request: web.Request) -> web.Response:
+        manager = _get_manager(self.hass)
+        try:
+            limit = int(request.query.get("limit", "50"))
+            return web.json_response({"ok": True, "history": manager.get_share_history(limit=limit)})
+        except Exception as err:
+            return self._error(err)
+
+
 async def async_register_http_api(hass: HomeAssistant) -> None:
     """Register all HTTP views for the NextFirst panel."""
     # Idempotent registration avoids reload crashes when routes already exist.
@@ -213,6 +355,10 @@ async def async_register_http_api(hass: HomeAssistant) -> None:
         NextFirstExperienceDetailView(hass),
         NextFirstActionView(hass),
         NextFirstAIGenerateView(hass),
+        NextFirstMonthlySummaryPreviewView(hass),
+        NextFirstShareExperienceView(hass),
+        NextFirstShareMonthlyView(hass),
+        NextFirstShareHistoryView(hass),
     ):
         try:
             hass.http.register_view(view)

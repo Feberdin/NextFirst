@@ -94,6 +94,18 @@ get_album:
   name: Album abrufen
   description: Gibt die letzten erlebten Einträge als Albumliste zurück.
 
+get_share_history:
+  name: Share Historie abrufen
+  description: Gibt die letzten Social-Share-Events als Response zurück.
+  fields:
+    limit:
+      required: false
+      selector:
+        number:
+          min: 1
+          max: 200
+          mode: box
+
 preview_monthly_summary:
   name: Monatszusammenfassung Vorschau
   description: Erzeugt eine Monatszusammenfassung als Textvorschau.

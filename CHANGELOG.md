@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.0 - 2026-03-08
+
+- Social Posting mit echten Providern ergänzt: `webhook`, `mastodon`, `bluesky`
+- Monats-Scheduler ergänzt (monatlicher Rückblick nach konfigurierbarem Tag/Stunde)
+- Share-Historie persistent im Storage inkl. API/Service-Zugriff
+- UI erweitert um Social-Tab mit Share-Aktionen, Monatsvorschau und Historie
+- Debug-Schalter in Optionen ergänzt (`debug_enabled`), kein YAML-Edit nötig
+
 ## 0.2.1 - 2026-03-08
 
 - Grundlagen für Social-Integration ergänzt (provider-neutrale Schnittstellen + neue Services)

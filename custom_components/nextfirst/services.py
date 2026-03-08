@@ -36,6 +36,7 @@ from .const import (
     SERVICE_DELETE_EXPERIENCE,
     SERVICE_GENERATE_AI_SUGGESTIONS,
     SERVICE_GET_ALBUM,
+    SERVICE_GET_SHARE_HISTORY,
     SERVICE_GET_STATISTICS,
     SERVICE_MARK_EXPERIENCED,
     SERVICE_MARK_SKIPPED,
@@ -168,6 +169,13 @@ async def async_register_services(
         except Exception as err:
             raise to_ha_error(err) from err
 
+    async def get_share_history(call: ServiceCall) -> dict[str, Any]:
+        try:
+            limit = int(call.data.get("limit", 50))
+            return {"history": manager.get_share_history(limit=limit)}
+        except Exception as err:
+            raise to_ha_error(err) from err
+
     async def preview_monthly_summary(call: ServiceCall) -> dict[str, Any]:
         try:
             month = str(call.data.get("month") or utc_now_iso()[:7])
@@ -200,6 +208,7 @@ async def async_register_services(
                 if isinstance(media, dict) and media.get("path")
             ]
             preprocess_result = await preprocess_social_media(options_getter(), media_paths)
+            session = aiohttp_client.async_get_clientsession(hass)
             post_result = await post_to_social(
                 options_getter(),
                 SocialPostRequest(
@@ -209,6 +218,14 @@ async def async_register_services(
                     source_type="experience",
                     source_id=experience_id,
                 ),
+                session=session,
+            )
+            await manager.async_record_share_event(
+                source_type="experience",
+                source_id=experience_id,
+                provider=post_result.provider_name,
+                ok=post_result.ok,
+                message=post_result.message,
             )
             persistent_notification.async_create(
                 hass,
@@ -231,6 +248,7 @@ async def async_register_services(
             hashtags = _split_hashtags(
                 str(call.data.get("hashtags") or options_getter().get(CONF_SOCIAL_DEFAULT_HASHTAGS, ""))
             )
+            session = aiohttp_client.async_get_clientsession(hass)
             post_result = await post_to_social(
                 options_getter(),
                 SocialPostRequest(
@@ -240,6 +258,14 @@ async def async_register_services(
                     source_type="monthly_summary",
                     source_id=month,
                 ),
+                session=session,
+            )
+            await manager.async_record_share_event(
+                source_type="monthly_summary",
+                source_id=month,
+                provider=post_result.provider_name,
+                ok=post_result.ok,
+                message=post_result.message,
             )
             persistent_notification.async_create(
                 hass,
@@ -382,6 +408,15 @@ async def async_register_services(
             DOMAIN,
             SERVICE_GET_ALBUM,
             get_album,
+            supports_response=SupportsResponse.ONLY,
+        )
+
+    if not hass.services.has_service(DOMAIN, SERVICE_GET_SHARE_HISTORY):
+        hass.services.async_register(
+            DOMAIN,
+            SERVICE_GET_SHARE_HISTORY,
+            get_share_history,
+            schema=vol.Schema({vol.Optional("limit"): int}),
             supports_response=SupportsResponse.ONLY,
         )
 

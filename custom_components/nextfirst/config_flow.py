@@ -32,6 +32,7 @@ from .const import (
     CONF_AI_SUGGESTION_COUNT,
     CONF_AI_TEMPERATURE,
     CONF_CUSTOM_INTERESTS,
+    CONF_DEBUG_ENABLED,
     CONF_EXCLUSIONS,
     CONF_FAMILY_FRIENDLY_ONLY,
     CONF_GOOD_WEATHER_ONLY,
@@ -42,13 +43,18 @@ from .const import (
     CONF_PREFERRED_CATEGORIES,
     CONF_PREFERRED_COURAGE_LEVELS,
     CONF_SOCIAL_AUTO_SHARE_MONTHLY,
+    CONF_SOCIAL_BLUESKY_APP_PASSWORD,
+    CONF_SOCIAL_BLUESKY_HANDLE,
     CONF_SOCIAL_DEFAULT_HASHTAGS,
     CONF_SOCIAL_ENABLED,
     CONF_SOCIAL_IMAGE_PREPROCESS_ENABLED,
     CONF_SOCIAL_IMAGE_PREPROCESS_PROMPT,
     CONF_SOCIAL_INCLUDE_AI_TEXT,
     CONF_SOCIAL_KIDS_PRIVACY_MODE,
+    CONF_SOCIAL_MASTODON_ACCESS_TOKEN,
+    CONF_SOCIAL_MASTODON_BASE_URL,
     CONF_SOCIAL_PROVIDER,
+    CONF_SOCIAL_WEBHOOK_URL,
     DEFAULT_OPTIONS,
     DOMAIN,
 )
@@ -150,7 +156,9 @@ class NextFirstOptionsFlow(config_entries.OptionsFlow):
                 vol.Optional(CONF_CUSTOM_INTERESTS, default=current[CONF_CUSTOM_INTERESTS]): str,
                 vol.Optional(CONF_EXCLUSIONS, default=current[CONF_EXCLUSIONS]): str,
                 vol.Optional(CONF_SOCIAL_ENABLED, default=current[CONF_SOCIAL_ENABLED]): bool,
-                vol.Optional(CONF_SOCIAL_PROVIDER, default=current[CONF_SOCIAL_PROVIDER]): str,
+                vol.Optional(CONF_SOCIAL_PROVIDER, default=current[CONF_SOCIAL_PROVIDER]): vol.In(
+                    ["none", "webhook", "mastodon", "bluesky"]
+                ),
                 vol.Optional(
                     CONF_SOCIAL_AUTO_SHARE_MONTHLY,
                     default=current[CONF_SOCIAL_AUTO_SHARE_MONTHLY],
@@ -187,6 +195,24 @@ class NextFirstOptionsFlow(config_entries.OptionsFlow):
                     CONF_MONTHLY_SUMMARY_HOUR,
                     default=current[CONF_MONTHLY_SUMMARY_HOUR],
                 ): vol.All(int, vol.Range(min=0, max=23)),
+                vol.Optional(CONF_SOCIAL_WEBHOOK_URL, default=current[CONF_SOCIAL_WEBHOOK_URL]): str,
+                vol.Optional(
+                    CONF_SOCIAL_MASTODON_BASE_URL,
+                    default=current[CONF_SOCIAL_MASTODON_BASE_URL],
+                ): str,
+                vol.Optional(
+                    CONF_SOCIAL_MASTODON_ACCESS_TOKEN,
+                    default=current[CONF_SOCIAL_MASTODON_ACCESS_TOKEN],
+                ): str,
+                vol.Optional(
+                    CONF_SOCIAL_BLUESKY_HANDLE,
+                    default=current[CONF_SOCIAL_BLUESKY_HANDLE],
+                ): str,
+                vol.Optional(
+                    CONF_SOCIAL_BLUESKY_APP_PASSWORD,
+                    default=current[CONF_SOCIAL_BLUESKY_APP_PASSWORD],
+                ): str,
+                vol.Optional(CONF_DEBUG_ENABLED, default=current[CONF_DEBUG_ENABLED]): bool,
             }
         )
 

@@ -22,6 +22,7 @@ from typing import Any
 from ..const import (
     CONF_SOCIAL_IMAGE_PREPROCESS_ENABLED,
     CONF_SOCIAL_IMAGE_PREPROCESS_PROMPT,
+    CONF_SOCIAL_KIDS_PRIVACY_MODE,
 )
 from .base import MediaTransformRequest, MediaTransformResult
 
@@ -35,6 +36,18 @@ async def preprocess_social_media(
         return MediaTransformResult(ok=True, transformed_paths=[], message="No media provided.")
 
     enabled = bool(options.get(CONF_SOCIAL_IMAGE_PREPROCESS_ENABLED, False))
+    kids_mode = str(options.get(CONF_SOCIAL_KIDS_PRIVACY_MODE, "none")).strip().lower()
+
+    if kids_mode in {"blur_kids", "ai_stylize"} and not enabled:
+        return MediaTransformResult(
+            ok=False,
+            transformed_paths=[],
+            message=(
+                "Kids privacy mode is active but preprocessing is disabled. "
+                "Media removed from share payload for safety."
+            ),
+        )
+
     if not enabled:
         return MediaTransformResult(
             ok=True,

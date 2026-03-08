@@ -46,7 +46,13 @@
           "social_image_preprocess_prompt": "Bild-Preprocessing Prompt",
           "monthly_summary_enabled": "Monatszusammenfassung aktivieren",
           "monthly_summary_day": "Monatstag für Zusammenfassung (1-28)",
-          "monthly_summary_hour": "Stunde für Zusammenfassung (0-23)"
+          "monthly_summary_hour": "Stunde für Zusammenfassung (0-23)",
+          "social_webhook_url": "Webhook URL",
+          "social_mastodon_base_url": "Mastodon Instanz-URL",
+          "social_mastodon_access_token": "Mastodon Access Token",
+          "social_bluesky_handle": "Bluesky Handle",
+          "social_bluesky_app_password": "Bluesky App Password",
+          "debug_enabled": "Debug Modus aktivieren"
         }
       }
     }

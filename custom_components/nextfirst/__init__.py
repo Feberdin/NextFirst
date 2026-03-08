@@ -27,6 +27,7 @@ if TYPE_CHECKING:
 from .const import (
     CONF_AI_API_KEY,
     CONF_AI_ENABLED,
+    CONF_DEBUG_ENABLED,
     DEFAULT_OPTIONS,
     DOMAIN,
     PLATFORMS,
@@ -35,6 +36,7 @@ from .const import (
 _LOGGER = logging.getLogger(__name__)
 
 RUNTIME_MANAGER = "manager"
+RUNTIME_UNSUBS = "unsubs"
 
 
 def _merged_options(entry: ConfigEntry) -> dict[str, Any]:
@@ -61,6 +63,7 @@ async def async_setup_entry(hass: "HomeAssistant", entry: "ConfigEntry") -> bool
     from .api import async_register_http_api
     from .manager import NextFirstManager
     from .panel import async_setup_panel
+    from .scheduler import async_setup_monthly_scheduler
     from .services import async_register_services
     from .storage import NextFirstStorage
 
@@ -73,7 +76,13 @@ async def async_setup_entry(hass: "HomeAssistant", entry: "ConfigEntry") -> bool
     hass.data[DOMAIN][entry.entry_id] = {
         RUNTIME_MANAGER: manager,
         "entry": entry,
+        RUNTIME_UNSUBS: [],
     }
+
+    opts = _merged_options(entry)
+    if bool(opts.get(CONF_DEBUG_ENABLED, False)):
+        logging.getLogger("custom_components.nextfirst").setLevel(logging.DEBUG)
+        _LOGGER.debug("NextFirst debug mode enabled from options.")
 
     await async_register_services(
         hass,
@@ -82,6 +91,12 @@ async def async_setup_entry(hass: "HomeAssistant", entry: "ConfigEntry") -> bool
     )
     await async_register_http_api(hass)
     await async_setup_panel(hass)
+    unsub_scheduler = async_setup_monthly_scheduler(
+        hass,
+        manager,
+        options_getter=lambda: _merged_options(entry),
+    )
+    hass.data[DOMAIN][entry.entry_id][RUNTIME_UNSUBS].append(unsub_scheduler)
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     _LOGGER.info("NextFirst setup complete for entry_id=%s", entry.entry_id)
@@ -98,6 +113,13 @@ async def async_unload_entry(hass: "HomeAssistant", entry: "ConfigEntry") -> boo
 
     # Single-instance integration: remove panel when unloading the entry.
     await async_unload_panel(hass)
+
+    runtime = hass.data.get(DOMAIN, {}).get(entry.entry_id, {})
+    for unsub in runtime.get(RUNTIME_UNSUBS, []):
+        try:
+            unsub()
+        except Exception:
+            continue
 
     hass.data.get(DOMAIN, {}).pop(entry.entry_id, None)
     if not hass.data.get(DOMAIN):

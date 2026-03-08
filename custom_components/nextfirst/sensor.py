@@ -79,6 +79,12 @@ SENSORS = [
         value_getter=lambda stats: len(stats["album_recent"]),
         attributes_getter=lambda stats: {"items": stats["album_recent"]},
     ),
+    NextFirstSensorDescription(
+        key="social_shares_total",
+        name="NextFirst Social Shares Total",
+        icon="mdi:share-variant-outline",
+        value_getter=lambda stats: stats.get("social_shares_total", 0),
+    ),
 ]
 
 
