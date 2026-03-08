@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.6 - 2026-03-08
+
+- Fix: KI-Generierung liefert jetzt stabil die angeforderte Anzahl (z. B. 2 oder 5)
+- Fix: Bilderupload nutzt jetzt sicheren HA-API-Flow via `callApi` (kein separater 401-Fetch mehr)
+- UI: Share-Buttons als direkte Klick-Buttons (Instagram, X, Facebook, WhatsApp, Telegram)
+- UI: Share-Text wird angezeigt und beim Teilen in Zwischenablage kopiert
+- Defaults: KI-Felder sinnvoll vorbefüllt (Kategorien, Mut-Level, Interessen)
+- Defaults: Standard-Hashtag auf `NextFirstHA` gesetzt
+
 ## 0.3.5 - 2026-03-08
 
 - Hotfix: NextFirst Setup-Crash behoben (`sensor.py` Dataclass-Feldreihenfolge via `kw_only=True`)

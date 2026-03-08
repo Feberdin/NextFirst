@@ -1,17 +1,14 @@
 /*
 Purpose:
-- Render NextFirst as a Home Assistant sidebar panel with four main views.
+- Render NextFirst as a Home Assistant sidebar panel with core list workflows.
 
 Input/Output:
 - Input: authenticated Home Assistant session + NextFirst API endpoints.
-- Output: interactive UI for open/skipped/experienced/album workflows.
+- Output: interactive UI for open/skipped/experienced/protocol/album views.
 
 Invariants:
 - UI actions call backend APIs and refresh state after each mutation.
-- Tabs always map to one product state: Offen, Übersprungen, Erlebt, Album.
-
-Debugging:
-- Open browser devtools and inspect failing requests under /api/nextfirst/*.
+- Upload uses authenticated HA API call (JSON base64) to avoid browser auth issues.
 */
 
 class NextFirstPanel extends HTMLElement {
@@ -28,6 +25,7 @@ class NextFirstPanel extends HTMLElement {
     this._summaryPreview = null;
     this._protocolHistory = [];
     this._pendingMediaExperienceId = null;
+    this._shareData = null;
   }
 
   set hass(hass) {
@@ -37,10 +35,6 @@ class NextFirstPanel extends HTMLElement {
       this._render();
       this._load();
     }
-  }
-
-  getCardSize() {
-    return 8;
   }
 
   async _api(method, path, body) {
@@ -65,6 +59,14 @@ class NextFirstPanel extends HTMLElement {
     }
   }
 
+  _escape(v) {
+    return String(v ?? "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;");
+  }
+
   _byStatus(status) {
     return this._items.filter((i) => i.status === status);
   }
@@ -75,18 +77,9 @@ class NextFirstPanel extends HTMLElement {
       .sort((a, b) => (b.completed_at || "").localeCompare(a.completed_at || ""));
   }
 
-  _escape(v) {
-    return String(v ?? "")
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;")
-      .replaceAll('"', "&quot;");
-  }
-
   _resolveMediaUrl(path) {
     const clean = String(path || "").trim();
     if (!clean) return "";
-    // /media URLs trigger auth problems in plain <img> tags for many setups.
     if (clean.startsWith("/media/")) return "";
     return clean;
   }
@@ -94,7 +87,6 @@ class NextFirstPanel extends HTMLElement {
   async _create() {
     const title = prompt("Titel des neuen Erlebnisses:");
     if (!title || !title.trim()) return;
-
     try {
       await this._api("post", "nextfirst/experiences", { title: title.trim() });
       await this._load();
@@ -109,7 +101,6 @@ class NextFirstPanel extends HTMLElement {
     if (title === null) return;
     const category = prompt("Kategorie (optional):", currentCategory || "");
     if (category === null) return;
-
     try {
       await this._api("patch", `nextfirst/experiences/${id}`, {
         title: title.trim(),
@@ -157,28 +148,32 @@ class NextFirstPanel extends HTMLElement {
     this.shadowRoot.getElementById("mediaUploadInput")?.click();
   }
 
+  _fileToDataUrl(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => reject(new Error("Datei-Lesen fehlgeschlagen."));
+      reader.readAsDataURL(file);
+    });
+  }
+
   async _uploadMediaFile(file) {
     if (!file || !this._pendingMediaExperienceId) return;
     try {
-      const form = new FormData();
-      form.append("file", file);
-      const response = await this._hass.auth.fetchWithAuth(
-        `/api/nextfirst/experiences/${this._pendingMediaExperienceId}/media/upload`,
+      const dataUrl = await this._fileToDataUrl(file);
+      const contentBase64 = String(dataUrl).split(",")[1] || "";
+      if (!contentBase64) throw new Error("Datei konnte nicht gelesen werden.");
+
+      const res = await this._api(
+        "post",
+        `nextfirst/experiences/${this._pendingMediaExperienceId}/media/upload_json`,
         {
-          method: "POST",
-          body: form,
+          filename: file.name || "upload.jpg",
+          mime_type: file.type || "image/jpeg",
+          content_base64: contentBase64,
         }
       );
-      if (!response.ok) {
-        let message = "";
-        try {
-          const payload = await response.json();
-          message = payload?.error || payload?.message || "";
-        } catch (jsonErr) {
-          message = await response.text();
-        }
-        throw new Error(message || `Upload fehlgeschlagen (${response.status})`);
-      }
+      if (!res?.ok) throw new Error(res?.error || "Upload fehlgeschlagen.");
       await this._load();
     } catch (err) {
       this._error = err?.message || String(err);
@@ -201,9 +196,7 @@ class NextFirstPanel extends HTMLElement {
     if (countRaw === null) return;
     const count = Number(countRaw);
     try {
-      await this._api("post", "nextfirst/ai/generate", {
-        count: Number.isFinite(count) ? count : 5,
-      });
+      await this._api("post", "nextfirst/ai/generate", { count: Number.isFinite(count) ? count : 5 });
       await this._load();
     } catch (err) {
       this._error = err?.message || String(err);
@@ -230,7 +223,7 @@ class NextFirstPanel extends HTMLElement {
         text: text.trim() || undefined,
         hashtags: hashtags.trim() || undefined,
       });
-      this._openShareChooser(result.text, result.share_urls || {});
+      this._openShareBox(result.text, result.share_urls || {});
       await this._load();
     } catch (err) {
       this._error = err?.message || String(err);
@@ -239,15 +232,14 @@ class NextFirstPanel extends HTMLElement {
   }
 
   async _shareExperience(id, defaultTitle) {
-    const text =
-      prompt("Optional eigener Share-Text:", `Neues NextFirst Erlebnis: ${defaultTitle}`) ?? "";
+    const text = prompt("Optional eigener Share-Text:", `Neues NextFirst Erlebnis: ${defaultTitle}`) ?? "";
     const hashtags = prompt("Hashtags (kommasepariert, optional):", "") ?? "";
     try {
       const result = await this._api("post", `nextfirst/share/experience/${id}`, {
         text: text.trim() || undefined,
         hashtags: hashtags.trim() || undefined,
       });
-      this._openShareChooser(result.text, result.share_urls || {});
+      this._openShareBox(result.text, result.share_urls || {});
       await this._load();
     } catch (err) {
       this._error = err?.message || String(err);
@@ -255,17 +247,23 @@ class NextFirstPanel extends HTMLElement {
     }
   }
 
-  _openShareChooser(text, urls) {
-    const selection = prompt(
-      "Teilen über: instagram, x, facebook, whatsapp oder telegram\n(Hinweis: Text wird in die Zwischenablage kopiert.)",
-      "instagram"
-    );
-    if (!selection) return;
-    const provider = selection.trim().toLowerCase();
+  _openShareBox(text, urls) {
+    this._shareData = { text: text || "", urls: urls || {} };
+    this._render();
+  }
+
+  _closeShareBox() {
+    this._shareData = null;
+    this._render();
+  }
+
+  _shareVia(provider) {
+    if (!this._shareData) return;
+    const text = this._shareData.text || "";
+    const url = this._shareData.urls?.[provider];
     if (navigator.clipboard?.writeText) {
       navigator.clipboard.writeText(text).catch(() => {});
     }
-    const url = urls[provider];
     if (url) {
       window.open(url, "_blank", "noopener,noreferrer");
     }
@@ -274,9 +272,7 @@ class NextFirstPanel extends HTMLElement {
   _renderCard(item) {
     const mediaCount = item.media?.length || 0;
     const category = item.category ? `<span class="pill">${this._escape(item.category)}</span>` : "";
-    const courage = item.courage_level
-      ? `<span class="pill">Mut: ${this._escape(item.courage_level)}</span>`
-      : "";
+    const courage = item.courage_level ? `<span class="pill">Mut: ${this._escape(item.courage_level)}</span>` : "";
 
     let actions = "";
     if (item.status === "open") {
@@ -325,10 +321,10 @@ class NextFirstPanel extends HTMLElement {
     const media = item.media || [];
     const first = media[0]?.path || "";
     const safeImageUrl = this._resolveMediaUrl(first);
-    const mediaHint =
-      first && !safeImageUrl
-        ? `<p class="note">Bildpfad ${this._escape(first)} ist im Browser nicht direkt lesbar. Bitte neu hochladen.</p>`
-        : "";
+    const mediaHint = first && !safeImageUrl
+      ? `<p class="note">Bildpfad ${this._escape(first)} ist im Browser nicht direkt lesbar. Bitte neu hochladen.</p>`
+      : "";
+
     return `
       <article class="album-card">
         ${safeImageUrl ? `<img src="${this._escape(safeImageUrl)}" alt="${this._escape(item.title)}" />` : `<div class="img-fallback">Kein Bild</div>`}
@@ -365,21 +361,15 @@ class NextFirstPanel extends HTMLElement {
       return items.map((item) => this._renderCard(item)).join("\n");
     }
 
-        if (this._tab === "protocol") {
+    if (this._tab === "protocol") {
       const preview = this._summaryPreview
         ? `<div class="state"><strong>Monatsvorschau:</strong><br>${this._escape(this._summaryPreview.summary_text || "")}</div>`
         : `<div class="state">Noch keine Monatsvorschau geladen.</div>`;
       const history = this._protocolHistory.length
         ? `<ul class="history">${this._protocolHistory
-            .map(
-              (h) =>
-                `<li><strong>${this._escape(h.timestamp || "-")}</strong> | ${this._escape(
-                  h.level || "-"
-                )} | ${this._escape(h.action || "-")}<br>${this._escape(h.message || "")}</li>`
-            )
+            .map((h) => `<li><strong>${this._escape(h.timestamp || "-")}</strong> | ${this._escape(h.level || "-")} | ${this._escape(h.action || "-")}<br>${this._escape(h.message || "")}</li>`)
             .join("")}</ul>`
         : `<div class="state">Noch keine NextFirst-Protokolleinträge vorhanden.</div>`;
-
       return `
         <div class="toolbar">
           <button id="previewMonthlyBtn">Monatsvorschau laden</button>
@@ -406,18 +396,18 @@ class NextFirstPanel extends HTMLElement {
     this.shadowRoot.getElementById("createBtn")?.addEventListener("click", () => this._create());
     this.shadowRoot.getElementById("refreshBtn")?.addEventListener("click", () => this._load());
     this.shadowRoot.getElementById("aiBtn")?.addEventListener("click", () => this._generateAI());
-    this.shadowRoot
-      .getElementById("previewMonthlyBtn")
-      ?.addEventListener("click", () => this._previewMonthlySummary());
-    this.shadowRoot
-      .getElementById("shareMonthlyBtn")
-      ?.addEventListener("click", () => this._shareMonthlySummary());
-    this.shadowRoot
-      .getElementById("mediaUploadInput")
-      ?.addEventListener("change", (event) => {
-        const file = event?.target?.files?.[0];
-        if (file) this._uploadMediaFile(file);
-      });
+    this.shadowRoot.getElementById("previewMonthlyBtn")?.addEventListener("click", () => this._previewMonthlySummary());
+    this.shadowRoot.getElementById("shareMonthlyBtn")?.addEventListener("click", () => this._shareMonthlySummary());
+
+    this.shadowRoot.getElementById("mediaUploadInput")?.addEventListener("change", (event) => {
+      const file = event?.target?.files?.[0];
+      if (file) this._uploadMediaFile(file);
+    });
+
+    this.shadowRoot.getElementById("shareCloseBtn")?.addEventListener("click", () => this._closeShareBox());
+    this.shadowRoot.querySelectorAll("button[data-share-provider]").forEach((btn) => {
+      btn.addEventListener("click", () => this._shareVia(btn.dataset.shareProvider));
+    });
 
     this.shadowRoot.querySelectorAll("button[data-action]").forEach((btn) => {
       btn.addEventListener("click", async () => {
@@ -441,169 +431,44 @@ class NextFirstPanel extends HTMLElement {
 
   _render() {
     const stats = this._stats || {};
-
     this.shadowRoot.innerHTML = `
       <style>
-        :host {
-          display: block;
-          min-height: 100%;
-          color: var(--primary-text-color);
-          background: linear-gradient(135deg, rgba(35, 111, 146, 0.10), rgba(244, 163, 97, 0.12));
-          font-family: "Avenir Next", "Segoe UI", sans-serif;
-        }
-        .wrap {
-          max-width: 1100px;
-          margin: 0 auto;
-          padding: 16px;
-        }
-        .top {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 8px;
-          align-items: center;
-          justify-content: space-between;
-          margin-bottom: 12px;
-        }
-        h1 {
-          margin: 0;
-          font-size: 1.4rem;
-        }
-        .stats {
-          display: flex;
-          gap: 8px;
-          flex-wrap: wrap;
-          margin: 8px 0 16px;
-        }
-        .stat {
-          background: var(--card-background-color);
-          border-radius: 12px;
-          padding: 10px 12px;
-          border: 1px solid rgba(127,127,127,0.2);
-          font-size: 0.9rem;
-        }
-        .toolbar {
-          display: flex;
-          gap: 8px;
-          flex-wrap: wrap;
-        }
-        button {
-          border: none;
-          border-radius: 10px;
-          padding: 8px 12px;
-          cursor: pointer;
-          background: #236f92;
-          color: #fff;
-          font-weight: 600;
-        }
-        button:hover { filter: brightness(1.08); }
-        button.danger { background: #b42318; }
-        .tabs {
-          display: flex;
-          gap: 8px;
-          flex-wrap: wrap;
-          margin-bottom: 14px;
-        }
-        .tab {
-          background: #456c80;
-          opacity: 0.7;
-        }
-        .tab.active {
-          opacity: 1;
-          background: #1f5773;
-        }
-        .card {
-          background: var(--card-background-color);
-          border: 1px solid rgba(127,127,127,0.2);
-          border-radius: 14px;
-          padding: 12px;
-          margin-bottom: 10px;
-        }
-        .card header {
-          display: flex;
-          justify-content: space-between;
-          gap: 8px;
-          align-items: baseline;
-        }
-        .card h3 { margin: 0; }
-        .status {
-          border-radius: 999px;
-          padding: 2px 10px;
-          font-size: 0.75rem;
-          text-transform: uppercase;
-        }
-        .status-open { background: #d9f2ff; color: #0b3b53; }
-        .status-skipped { background: #fff2cc; color: #6a4d00; }
-        .status-experienced, .status-archived { background: #dff7e4; color: #12481f; }
-        .meta {
-          display: flex;
-          gap: 6px;
-          flex-wrap: wrap;
-          margin: 8px 0;
-        }
-        .pill {
-          border-radius: 999px;
-          background: rgba(35,111,146,0.12);
-          padding: 2px 10px;
-          font-size: 0.78rem;
-        }
-        .actions {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 6px;
-          margin-top: 10px;
-        }
-        .note {
-          font-style: italic;
-          color: var(--secondary-text-color);
-        }
-        .state {
-          background: var(--card-background-color);
-          border-radius: 10px;
-          border: 1px solid rgba(127,127,127,0.2);
-          padding: 14px;
-        }
-        .state.error {
-          border-color: #b42318;
-          color: #b42318;
-        }
-        .album-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-          gap: 10px;
-        }
-        .album-card {
-          overflow: hidden;
-          border-radius: 12px;
-          background: var(--card-background-color);
-          border: 1px solid rgba(127,127,127,0.2);
-        }
-        .album-card img,
-        .img-fallback {
-          width: 100%;
-          height: 180px;
-          object-fit: cover;
-          display: block;
-          background: #d7e7ef;
-        }
-        .img-fallback {
-          display: grid;
-          place-items: center;
-          color: #496170;
-          font-weight: 600;
-        }
-        .album-content {
-          padding: 10px;
-        }
-        .album-content h3 {
-          margin: 0 0 6px;
-        }
-        .history {
-          margin: 12px 0 0;
-          padding: 0 0 0 18px;
-        }
-        .history li {
-          margin: 8px 0;
-        }
+        :host { display:block; min-height:100%; color:var(--primary-text-color); background:linear-gradient(135deg, rgba(35,111,146,0.10), rgba(244,163,97,0.12)); font-family:"Avenir Next","Segoe UI",sans-serif; }
+        .wrap { max-width:1100px; margin:0 auto; padding:16px; }
+        .top { display:flex; flex-wrap:wrap; gap:8px; align-items:center; justify-content:space-between; margin-bottom:12px; }
+        h1 { margin:0; font-size:1.4rem; }
+        .stats { display:flex; gap:8px; flex-wrap:wrap; margin:8px 0 16px; }
+        .stat { background:var(--card-background-color); border-radius:12px; padding:10px 12px; border:1px solid rgba(127,127,127,0.2); font-size:0.9rem; }
+        .toolbar { display:flex; gap:8px; flex-wrap:wrap; }
+        button { border:none; border-radius:10px; padding:8px 12px; cursor:pointer; background:#236f92; color:#fff; font-weight:600; }
+        button:hover { filter:brightness(1.08); }
+        button.danger { background:#b42318; }
+        .tabs { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px; }
+        .tab { background:#456c80; opacity:0.7; }
+        .tab.active { opacity:1; background:#1f5773; }
+        .card { background:var(--card-background-color); border:1px solid rgba(127,127,127,0.2); border-radius:14px; padding:12px; margin-bottom:10px; }
+        .card header { display:flex; justify-content:space-between; gap:8px; align-items:baseline; }
+        .card h3 { margin:0; }
+        .status { border-radius:999px; padding:2px 10px; font-size:0.75rem; text-transform:uppercase; }
+        .status-open { background:#d9f2ff; color:#0b3b53; }
+        .status-skipped { background:#fff2cc; color:#6a4d00; }
+        .status-experienced,.status-archived { background:#dff7e4; color:#12481f; }
+        .meta { display:flex; gap:6px; flex-wrap:wrap; margin:8px 0; }
+        .pill { border-radius:999px; background:rgba(35,111,146,0.12); padding:2px 10px; font-size:0.78rem; }
+        .actions { display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
+        .note { font-style:italic; color:var(--secondary-text-color); }
+        .state { background:var(--card-background-color); border-radius:10px; border:1px solid rgba(127,127,127,0.2); padding:14px; }
+        .state.error { border-color:#b42318; color:#b42318; }
+        .album-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:10px; }
+        .album-card { overflow:hidden; border-radius:12px; background:var(--card-background-color); border:1px solid rgba(127,127,127,0.2); }
+        .album-card img, .img-fallback { width:100%; height:180px; object-fit:cover; display:block; background:#d7e7ef; }
+        .img-fallback { display:grid; place-items:center; color:#496170; font-weight:600; }
+        .album-content { padding:10px; }
+        .album-content h3 { margin:0 0 6px; }
+        .history { margin:12px 0 0; padding:0 0 0 18px; }
+        .history li { margin:8px 0; }
+        .share-box { background:var(--card-background-color); border:1px solid rgba(127,127,127,0.2); border-radius:12px; padding:12px; margin-bottom:12px; }
+        .share-box pre { white-space:pre-wrap; background:rgba(127,127,127,0.1); padding:8px; border-radius:8px; font-family:monospace; font-size:0.82rem; }
       </style>
       <div class="wrap">
         <div class="top">
@@ -629,6 +494,22 @@ class NextFirstPanel extends HTMLElement {
           <button class="tab ${this._tab === "protocol" ? "active" : ""}" data-tab="protocol">Protokoll</button>
           <button class="tab ${this._tab === "album" ? "active" : ""}" data-tab="album">Album</button>
         </div>
+
+        ${this._shareData ? `
+          <div class="share-box">
+            <strong>Teilen</strong>
+            <p>Button klicken, dann im jeweiligen Netzwerk posten.</p>
+            <pre>${this._escape(this._shareData.text || "")}</pre>
+            <div class="actions">
+              <button data-share-provider="instagram">Instagram</button>
+              <button data-share-provider="x">X</button>
+              <button data-share-provider="facebook">Facebook</button>
+              <button data-share-provider="whatsapp">WhatsApp</button>
+              <button data-share-provider="telegram">Telegram</button>
+              <button id="shareCloseBtn" class="danger">Schließen</button>
+            </div>
+          </div>
+        ` : ""}
 
         <section>${this._renderBody()}</section>
         <input id="mediaUploadInput" type="file" accept="image/*" style="display:none" />

@@ -61,7 +61,9 @@ class OpenAISuggestionProvider:
 
         system_prompt = (
             "You generate family-friendly and practical first-time activity ideas. "
-            "Return strict JSON array. Each item must include title and may include "
+            "Return strict JSON with exactly the requested number of ideas. "
+            "Use either a JSON array or object key 'suggestions'. "
+            "Each item must include title and may include "
             "description, category, courage_level, duration_minutes, cost_level, "
             "travel_minutes, family_friendly, indoor_outdoor, weather_hint, notes."
         )

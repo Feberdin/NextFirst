@@ -68,8 +68,9 @@ async def generate_and_store_suggestions(
         )
 
     suggestion_count = int(count_override or options.get(CONF_AI_SUGGESTION_COUNT, 5))
+    target_count = max(1, min(suggestion_count, 20))
     context = SuggestionContext(
-        suggestion_count=max(1, min(suggestion_count, 20)),
+        suggestion_count=target_count,
         max_travel_minutes=int(options.get(CONF_MAX_TRAVEL_MINUTES, 60)),
         family_friendly_only=bool(options.get(CONF_FAMILY_FRIENDLY_ONLY, False)),
         good_weather_only=bool(options.get(CONF_GOOD_WEATHER_ONLY, False)),
@@ -88,9 +89,37 @@ async def generate_and_store_suggestions(
         max_tokens=int(options.get(CONF_AI_MAX_TOKENS, 600)),
     )
 
-    drafts = await provider.generate(context)
+    drafts = []
+    seen_titles: set[str] = set()
+    attempts = 0
+    # Providers may return fewer suggestions than requested; retry with remaining count.
+    while len(drafts) < target_count and attempts < 4:
+        attempts += 1
+        remaining = target_count - len(drafts)
+        batch = await provider.generate(
+            SuggestionContext(
+                suggestion_count=remaining,
+                max_travel_minutes=context.max_travel_minutes,
+                family_friendly_only=context.family_friendly_only,
+                good_weather_only=context.good_weather_only,
+                travel_origin=context.travel_origin,
+                preferred_categories=context.preferred_categories,
+                preferred_courage_levels=context.preferred_courage_levels,
+                custom_interests=context.custom_interests,
+                exclusions=context.exclusions,
+            )
+        )
+        for draft in batch:
+            key = draft.title.strip().lower()
+            if not key or key in seen_titles:
+                continue
+            seen_titles.add(key)
+            drafts.append(draft)
+            if len(drafts) >= target_count:
+                break
+
     created: list[dict[str, Any]] = []
-    for draft in drafts:
+    for draft in drafts[:target_count]:
         created.append(
             await manager.async_create_experience(
                 title=draft.title,
@@ -109,5 +138,5 @@ async def generate_and_store_suggestions(
         )
 
     manager.last_ai_generation = utc_now_iso()
-    _LOGGER.info("Generated %s AI suggestions", len(created))
+    _LOGGER.info("Generated %s AI suggestions (requested=%s)", len(created), target_count)
     return created

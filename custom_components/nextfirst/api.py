@@ -17,6 +17,7 @@ Debugging:
 
 from __future__ import annotations
 
+import base64
 from pathlib import Path
 from uuid import uuid4
 from typing import Any
@@ -33,16 +34,21 @@ from .manager import NextFirstManager
 from .monthly_summary import build_monthly_summary
 
 
-def _build_share_urls(text: str) -> dict[str, str]:
+def _build_share_urls(text: str, share_url: str | None = None) -> dict[str, str]:
     """Create provider URLs for manual one-click social sharing from the UI."""
     from urllib.parse import quote_plus
 
     encoded = quote_plus(text)
+    encoded_url = quote_plus(share_url or "")
     return {
-        "x": f"https://x.com/intent/post?text={encoded}",
-        "facebook": f"https://www.facebook.com/sharer/sharer.php?quote={encoded}",
-        "whatsapp": f"https://wa.me/?text={encoded}",
-        "telegram": f"https://t.me/share/url?text={encoded}",
+        "x": f"https://twitter.com/intent/tweet?text={encoded}{f'&url={encoded_url}' if share_url else ''}",
+        "facebook": (
+            f"https://www.facebook.com/sharer/sharer.php?u={encoded_url}"
+            if share_url
+            else "https://www.facebook.com/sharer/sharer.php"
+        ),
+        "whatsapp": f"https://api.whatsapp.com/send?text={encoded}{f'%20{encoded_url}' if share_url else ''}",
+        "telegram": f"https://t.me/share/url?text={encoded}{f'&url={encoded_url}' if share_url else ''}",
         # Instagram does not support prefilled text via web intent.
         "instagram": "https://www.instagram.com/",
     }
@@ -270,6 +276,41 @@ class NextFirstMediaUploadView(NextFirstBaseView):
             return await self._error(err)
 
 
+class NextFirstMediaUploadJsonView(NextFirstBaseView):
+    """Upload one media file via JSON payload (base64 content)."""
+
+    url = "/api/nextfirst/experiences/{experience_id}/media/upload_json"
+    name = "api:nextfirst:media_upload_json"
+
+    async def post(self, request: web.Request, experience_id: str) -> web.Response:
+        manager = _get_manager(self.hass)
+        body = await self._json_body(request)
+        try:
+            filename = str(body.get("filename") or "upload.jpg")
+            content_b64 = str(body.get("content_base64") or "")
+            if not content_b64:
+                return web.json_response({"ok": False, "error": "content_base64 is required."}, status=400)
+
+            suffix = Path(filename).suffix.lower() or ".jpg"
+            target_dir = Path(self.hass.config.path("www", "nextfirst_uploads"))
+            target_dir.mkdir(parents=True, exist_ok=True)
+            stored_name = f"{uuid4()}{suffix}"
+            target_file = target_dir / stored_name
+
+            binary = base64.b64decode(content_b64.encode("ascii"), validate=False)
+            target_file.write_bytes(binary)
+
+            public_path = f"/local/nextfirst_uploads/{stored_name}"
+            media = await manager.async_attach_media(
+                experience_id=experience_id,
+                path=public_path,
+                metadata={"original_filename": filename, "upload_mode": "json_base64"},
+            )
+            return web.json_response({"ok": True, "media": media})
+        except Exception as err:
+            return await self._error(err)
+
+
 class NextFirstMonthlySummaryPreviewView(NextFirstBaseView):
     """Return monthly summary preview payload for UI and automations."""
 
@@ -313,7 +354,7 @@ class NextFirstShareExperienceView(NextFirstBaseView):
             return web.json_response(
                 {
                     "ok": True,
-                    "share_urls": _build_share_urls(full_text),
+                    "share_urls": _build_share_urls(full_text, share_url=str(request.url.origin())),
                     "text": full_text,
                     "event": event,
                 }
@@ -347,7 +388,7 @@ class NextFirstShareMonthlyView(NextFirstBaseView):
             return web.json_response(
                 {
                     "ok": True,
-                    "share_urls": _build_share_urls(full_text),
+                    "share_urls": _build_share_urls(full_text, share_url=str(request.url.origin())),
                     "text": full_text,
                     "event": event,
                 }
@@ -395,6 +436,7 @@ async def async_register_http_api(hass: HomeAssistant) -> None:
         NextFirstActionView(hass),
         NextFirstAIGenerateView(hass),
         NextFirstMediaUploadView(hass),
+        NextFirstMediaUploadJsonView(hass),
         NextFirstMonthlySummaryPreviewView(hass),
         NextFirstShareExperienceView(hass),
         NextFirstShareMonthlyView(hass),
