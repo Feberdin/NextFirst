@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.7 - 2026-03-08
+
+- Fix: Hartes Cache-Busting fuer das Sidebar-Panel (neue JS-Bundle-URL mit Version)
+- Fix: Stellt sicher, dass nach Update die neue Upload-Logik geladen wird (kein alter `/media/upload` UI-Call)
+- Stabilisierung: Panel-Frontend-Registrierung mit versionsabhängiger `module_url`
+
 ## 0.3.6 - 2026-03-08
 
 - Fix: KI-Generierung liefert jetzt stabil die angeforderte Anzahl (z. B. 2 oder 5)

@@ -33,6 +33,9 @@ STATIC_URL = "/nextfirst_static"
 async def async_setup_panel(hass: HomeAssistant) -> None:
     """Register static panel resources and sidebar item."""
     static_dir = Path(__file__).parent / "frontend"
+    panel_js = static_dir / "nextfirst-panel.js"
+    # Cache busting: force browser to load latest panel bundle after integration updates.
+    bundle_version = str(int(panel_js.stat().st_mtime)) if panel_js.exists() else "0"
 
     try:
         await hass.http.async_register_static_paths(
@@ -51,7 +54,7 @@ async def async_setup_panel(hass: HomeAssistant) -> None:
             config={
                 "_panel_custom": {
                     "name": "nextfirst-panel",
-                    "module_url": f"{STATIC_URL}/nextfirst-panel.js",
+                    "module_url": f"{STATIC_URL}/nextfirst-panel.js?v={bundle_version}",
                     "embed_iframe": False,
                     "trust_external": False,
                 }
