@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.5 - 2026-03-08
+
+- Hotfix: NextFirst Setup-Crash behoben (`sensor.py` Dataclass-Feldreihenfolge via `kw_only=True`)
+- Hotfix: Bilderupload-Auth im Panel korrigiert (HA `fetchWithAuth` statt manuellem Bearer-Header)
+- Hotfix: `/media/*` Bildpfade im Album lösen keine unauthenticated Requests mehr aus
+- UX: Eigener Tab `Protokoll` in der UI ergänzt
+
 ## 0.3.4 - 2026-03-08
 
 - Hotfix: Sensoren wieder voll kompatibel mit aktueller HA-Version (`entity_registry_visible_default`)

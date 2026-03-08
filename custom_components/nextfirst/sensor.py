@@ -30,7 +30,7 @@ from .const import DOMAIN, SIGNAL_DATA_CHANGED
 from .manager import NextFirstManager
 
 
-@dataclass(slots=True)
+@dataclass(slots=True, kw_only=True)
 class NextFirstSensorDescription(SensorEntityDescription):
     """Declarative mapping from manager stats to sensor entities."""
 

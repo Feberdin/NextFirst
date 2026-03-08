@@ -83,6 +83,14 @@ class NextFirstPanel extends HTMLElement {
       .replaceAll('"', "&quot;");
   }
 
+  _resolveMediaUrl(path) {
+    const clean = String(path || "").trim();
+    if (!clean) return "";
+    // /media URLs trigger auth problems in plain <img> tags for many setups.
+    if (clean.startsWith("/media/")) return "";
+    return clean;
+  }
+
   async _create() {
     const title = prompt("Titel des neuen Erlebnisses:");
     if (!title || !title.trim()) return;
@@ -154,18 +162,21 @@ class NextFirstPanel extends HTMLElement {
     try {
       const form = new FormData();
       form.append("file", file);
-      const response = await fetch(
+      const response = await this._hass.auth.fetchWithAuth(
         `/api/nextfirst/experiences/${this._pendingMediaExperienceId}/media/upload`,
         {
           method: "POST",
-          headers: {
-            Authorization: `Bearer ${this._hass.auth.data.accessToken}`,
-          },
           body: form,
         }
       );
       if (!response.ok) {
-        const message = await response.text();
+        let message = "";
+        try {
+          const payload = await response.json();
+          message = payload?.error || payload?.message || "";
+        } catch (jsonErr) {
+          message = await response.text();
+        }
         throw new Error(message || `Upload fehlgeschlagen (${response.status})`);
       }
       await this._load();
@@ -313,14 +324,20 @@ class NextFirstPanel extends HTMLElement {
   _renderAlbumItem(item) {
     const media = item.media || [];
     const first = media[0]?.path || "";
+    const safeImageUrl = this._resolveMediaUrl(first);
+    const mediaHint =
+      first && !safeImageUrl
+        ? `<p class="note">Bildpfad ${this._escape(first)} ist im Browser nicht direkt lesbar. Bitte neu hochladen.</p>`
+        : "";
     return `
       <article class="album-card">
-        ${first ? `<img src="${this._escape(first)}" alt="${this._escape(item.title)}" />` : `<div class="img-fallback">Kein Bild</div>`}
+        ${safeImageUrl ? `<img src="${this._escape(safeImageUrl)}" alt="${this._escape(item.title)}" />` : `<div class="img-fallback">Kein Bild</div>`}
         <div class="album-content">
           <h3>${this._escape(item.title)}</h3>
           <p>${this._escape(item.completed_at || "Kein Abschlussdatum")}</p>
           ${item.location ? `<p>Ort: ${this._escape(item.location)}</p>` : ""}
           ${item.notes ? `<p>${this._escape(item.notes)}</p>` : ""}
+          ${mediaHint}
         </div>
       </article>
     `;
@@ -348,7 +365,7 @@ class NextFirstPanel extends HTMLElement {
       return items.map((item) => this._renderCard(item)).join("\n");
     }
 
-    if (this._tab === "social") {
+        if (this._tab === "protocol") {
       const preview = this._summaryPreview
         ? `<div class="state"><strong>Monatsvorschau:</strong><br>${this._escape(this._summaryPreview.summary_text || "")}</div>`
         : `<div class="state">Noch keine Monatsvorschau geladen.</div>`;
@@ -609,7 +626,7 @@ class NextFirstPanel extends HTMLElement {
           <button class="tab ${this._tab === "open" ? "active" : ""}" data-tab="open">Offen</button>
           <button class="tab ${this._tab === "skipped" ? "active" : ""}" data-tab="skipped">Übersprungen</button>
           <button class="tab ${this._tab === "experienced" ? "active" : ""}" data-tab="experienced">Erlebt</button>
-          <button class="tab ${this._tab === "social" ? "active" : ""}" data-tab="social">Social</button>
+          <button class="tab ${this._tab === "protocol" ? "active" : ""}" data-tab="protocol">Protokoll</button>
           <button class="tab ${this._tab === "album" ? "active" : ""}" data-tab="album">Album</button>
         </div>
 
