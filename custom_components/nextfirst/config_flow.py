@@ -99,9 +99,6 @@ class NextFirstConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 class NextFirstOptionsFlow(config_entries.OptionsFlow):
     """Handle options flow for NextFirst runtime settings."""
 
-    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
-        self.config_entry = config_entry
-
     async def async_step_init(self, user_input: dict[str, Any] | None = None):
         """Edit integration options with safe defaults."""
         if user_input is not None:
