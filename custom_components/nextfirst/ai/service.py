@@ -176,6 +176,9 @@ async def generate_and_store_suggestions(
     drafts = []
     seen_titles: set[str] = set()
     attempts = 0
+    dropped_missing_location = 0
+    dropped_distance = 0
+    fallback_without_verified_route = 0
     # Providers may return fewer suggestions than requested; retry with remaining count.
     while len(drafts) < target_count and attempts < 4:
         attempts += 1
@@ -199,18 +202,39 @@ async def generate_and_store_suggestions(
             if not key or key in seen_titles:
                 continue
             if not str(draft.location or "").strip():
+                dropped_missing_location += 1
                 continue
             if origin_coords is not None:
                 coords = await _geocode_location(session, str(draft.location))
-                if coords is None:
-                    continue
-                drive_minutes = await _estimate_drive_minutes(session, origin_coords, coords)
-                if drive_minutes is None:
-                    continue
-                if drive_minutes > context.max_travel_minutes:
-                    continue
-                draft.travel_minutes = drive_minutes
+                if coords is not None:
+                    drive_minutes = await _estimate_drive_minutes(session, origin_coords, coords)
+                    if drive_minutes is not None:
+                        if drive_minutes > context.max_travel_minutes:
+                            dropped_distance += 1
+                            continue
+                        draft.travel_minutes = drive_minutes
+                    else:
+                        # Keep draft if routing service is unavailable; still enforce
+                        # model-provided travel time when present.
+                        fallback_without_verified_route += 1
+                        if (
+                            draft.travel_minutes is not None
+                            and draft.travel_minutes > context.max_travel_minutes
+                        ):
+                            dropped_distance += 1
+                            continue
+                else:
+                    # Keep draft if geocoding fails; still enforce model-provided time
+                    # when available so max travel preference remains active.
+                    fallback_without_verified_route += 1
+                    if (
+                        draft.travel_minutes is not None
+                        and draft.travel_minutes > context.max_travel_minutes
+                    ):
+                        dropped_distance += 1
+                        continue
             elif draft.travel_minutes is not None and draft.travel_minutes > context.max_travel_minutes:
+                dropped_distance += 1
                 continue
             seen_titles.add(key)
             drafts.append(draft)
@@ -241,5 +265,13 @@ async def generate_and_store_suggestions(
         )
 
     manager.last_ai_generation = utc_now_iso()
-    _LOGGER.info("Generated %s AI suggestions (requested=%s)", len(created), target_count)
+    _LOGGER.info(
+        "Generated %s AI suggestions (requested=%s, dropped_missing_location=%s, "
+        "dropped_distance=%s, fallback_without_verified_route=%s)",
+        len(created),
+        target_count,
+        dropped_missing_location,
+        dropped_distance,
+        fallback_without_verified_route,
+    )
     return created

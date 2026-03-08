@@ -52,6 +52,12 @@ Die Integration verbindet:
 
 ## Antichronologischer Changelog
 
+### v0.3.10 (2026-03-08)
+
+- KI-Generierung-Hotfix: Vorschläge werden nicht mehr komplett verworfen, wenn Geocoding/Routing-Dienste temporär nicht antworten
+- Max-Fahrzeit bleibt aktiv: Wenn `travel_minutes` vom Modell vorhanden ist und zu groß ist, wird weiterhin gefiltert
+- Neues Debug-Logging für KI-Filterpfad (`dropped_missing_location`, `dropped_distance`, `fallback_without_verified_route`)
+
 ### v0.3.9 (2026-03-08)
 
 - KI-Standard auf 2 Vorschläge vereinheitlicht (UI + Backend-Fallback)
