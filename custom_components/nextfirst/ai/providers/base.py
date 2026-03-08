@@ -28,6 +28,7 @@ class SuggestionContext:
     max_travel_minutes: int
     family_friendly_only: bool
     good_weather_only: bool
+    travel_origin: str = "zone.home"
     preferred_categories: list[str] = field(default_factory=list)
     preferred_courage_levels: list[str] = field(default_factory=list)
     custom_interests: str = ""

@@ -35,6 +35,7 @@ from ..const import (
     CONF_FAMILY_FRIENDLY_ONLY,
     CONF_GOOD_WEATHER_ONLY,
     CONF_MAX_TRAVEL_MINUTES,
+    CONF_TRAVEL_ORIGIN,
     CONF_PREFERRED_CATEGORIES,
     CONF_PREFERRED_COURAGE_LEVELS,
 )
@@ -72,6 +73,7 @@ async def generate_and_store_suggestions(
         max_travel_minutes=int(options.get(CONF_MAX_TRAVEL_MINUTES, 60)),
         family_friendly_only=bool(options.get(CONF_FAMILY_FRIENDLY_ONLY, False)),
         good_weather_only=bool(options.get(CONF_GOOD_WEATHER_ONLY, False)),
+        travel_origin=str(options.get(CONF_TRAVEL_ORIGIN, "zone.home") or "zone.home"),
         preferred_categories=list(options.get(CONF_PREFERRED_CATEGORIES, [])),
         preferred_courage_levels=list(options.get(CONF_PREFERRED_COURAGE_LEVELS, [])),
         custom_interests=str(options.get(CONF_CUSTOM_INTERESTS, "")),

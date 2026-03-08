@@ -19,7 +19,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Callable
 
-from homeassistant.components.sensor import SensorEntity
+from homeassistant.components.sensor import SensorEntity, SensorEntityDescription
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
@@ -31,15 +31,15 @@ from .manager import NextFirstManager
 
 
 @dataclass(slots=True)
-class NextFirstSensorDescription:
+class NextFirstSensorDescription(SensorEntityDescription):
     """Declarative mapping from manager stats to sensor entities."""
 
     key: str
     name: str
     icon: str
     value_getter: Callable[[dict[str, Any]], Any]
-    device_class: str | None = None
     entity_registry_enabled_default: bool = True
+    entity_registry_visible_default: bool = True
     attributes_getter: Callable[[dict[str, Any]], dict[str, Any]] | None = None
 
 

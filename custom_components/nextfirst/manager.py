@@ -62,6 +62,50 @@ class NextFirstManager:
                 )
 
         _LOGGER.info("NextFirst initialized with %s experiences", len(self._experiences))
+        await self.async_record_protocol_event(
+            action="initialize",
+            message=f"Loaded {len(self._experiences)} experience entries.",
+        )
+
+    def _append_protocol_event(
+        self,
+        *,
+        level: str,
+        action: str,
+        message: str,
+        context: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """Append one protocol event to in-memory document."""
+        event = {
+            "timestamp": utc_now_iso(),
+            "level": level,
+            "action": action,
+            "message": message,
+            "context": context or {},
+        }
+        self._doc.setdefault("protocol_history", [])
+        self._doc["protocol_history"].append(event)
+        self._doc["protocol_history"] = self._doc["protocol_history"][-500:]
+        return event
+
+    async def async_record_protocol_event(
+        self,
+        *,
+        action: str,
+        message: str,
+        level: str = "info",
+        context: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """Persist one protocol event for diagnostics and support."""
+        async with self._lock:
+            event = self._append_protocol_event(
+                level=level,
+                action=action,
+                message=message,
+                context=context,
+            )
+            await self._persist_and_notify()
+            return event
 
     def _require(self, experience_id: str) -> Experience:
         item = self._experiences.get(experience_id)
@@ -86,6 +130,12 @@ class NextFirstManager:
             origin = ExperienceOrigin(kwargs.pop("origin", ExperienceOrigin.MANUAL.value))
             exp = Experience.create(title=title, origin=origin, **kwargs)
             self._experiences[exp.id] = exp
+            self._append_protocol_event(
+                level="info",
+                action="create_experience",
+                message=f"Created experience '{exp.title}'.",
+                context={"experience_id": exp.id, "origin": exp.origin.value},
+            )
             await self._persist_and_notify()
             return exp.to_dict()
 
@@ -122,6 +172,12 @@ class NextFirstManager:
                 raise ValidationError("Title must not be empty. Fix: provide a non-empty title.")
 
             exp.updated_at = utc_now_iso()
+            self._append_protocol_event(
+                level="info",
+                action="update_experience",
+                message=f"Updated experience '{exp.title}'.",
+                context={"experience_id": exp.id, "updated_fields": list(updates.keys())},
+            )
             await self._persist_and_notify()
             return exp.to_dict()
 
@@ -130,12 +186,24 @@ class NextFirstManager:
         async with self._lock:
             _ = self._require(experience_id)
             del self._experiences[experience_id]
+            self._append_protocol_event(
+                level="info",
+                action="delete_experience",
+                message="Deleted one experience entry.",
+                context={"experience_id": experience_id},
+            )
             await self._persist_and_notify()
 
     async def async_mark_skipped(self, experience_id: str) -> dict[str, Any]:
         async with self._lock:
             exp = self._require(experience_id)
             exp.mark_status(ExperienceStatus.SKIPPED)
+            self._append_protocol_event(
+                level="info",
+                action="mark_skipped",
+                message=f"Marked '{exp.title}' as skipped.",
+                context={"experience_id": exp.id},
+            )
             await self._persist_and_notify()
             return exp.to_dict()
 
@@ -143,6 +211,12 @@ class NextFirstManager:
         async with self._lock:
             exp = self._require(experience_id)
             exp.mark_status(ExperienceStatus.OPEN)
+            self._append_protocol_event(
+                level="info",
+                action="reactivate_experience",
+                message=f"Reactivated '{exp.title}' to open.",
+                context={"experience_id": exp.id},
+            )
             await self._persist_and_notify()
             return exp.to_dict()
 
@@ -166,6 +240,12 @@ class NextFirstManager:
                 exp.would_repeat = would_repeat
             if location is not None:
                 exp.location = location
+            self._append_protocol_event(
+                level="info",
+                action="mark_experienced",
+                message=f"Marked '{exp.title}' as experienced.",
+                context={"experience_id": exp.id},
+            )
             await self._persist_and_notify()
             return exp.to_dict()
 
@@ -174,6 +254,12 @@ class NextFirstManager:
         async with self._lock:
             exp = self._require(experience_id)
             exp.mark_status(ExperienceStatus.ARCHIVED)
+            self._append_protocol_event(
+                level="info",
+                action="archive_experience",
+                message=f"Archived '{exp.title}'.",
+                context={"experience_id": exp.id},
+            )
             await self._persist_and_notify()
             return exp.to_dict()
 
@@ -208,6 +294,12 @@ class NextFirstManager:
             )
             exp.media.append(media)
             exp.updated_at = utc_now_iso()
+            self._append_protocol_event(
+                level="info",
+                action="attach_media",
+                message=f"Attached media to '{exp.title}'.",
+                context={"experience_id": exp.id, "media_id": media.media_id, "path": media.path},
+            )
             await self._persist_and_notify()
             return media.to_dict()
 
@@ -217,6 +309,12 @@ class NextFirstManager:
             exp = self._require(experience_id)
             exp.notes = note
             exp.updated_at = utc_now_iso()
+            self._append_protocol_event(
+                level="info",
+                action="add_note",
+                message=f"Updated note on '{exp.title}'.",
+                context={"experience_id": exp.id},
+            )
             await self._persist_and_notify()
             return exp.to_dict()
 
@@ -304,10 +402,26 @@ class NextFirstManager:
             self._doc.setdefault("social_history", [])
             self._doc["social_history"].append(event)
             self._doc["social_history"] = self._doc["social_history"][-200:]
+            self._append_protocol_event(
+                level="info" if ok else "warning",
+                action="social_share",
+                message=f"Social share ({provider}) result: {message}",
+                context={
+                    "source_type": source_type,
+                    "source_id": source_id,
+                    "provider": provider,
+                    "ok": ok,
+                },
+            )
             await self._persist_and_notify()
             return event
 
     def get_share_history(self, limit: int = 50) -> list[dict[str, Any]]:
         """Return newest social share events first."""
         history = list(self._doc.get("social_history", []))
+        return list(reversed(history[-max(1, limit) :]))
+
+    def get_protocol_history(self, limit: int = 200) -> list[dict[str, Any]]:
+        """Return newest protocol events first."""
+        history = list(self._doc.get("protocol_history", []))
         return list(reversed(history[-max(1, limit) :]))

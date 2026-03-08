@@ -118,7 +118,7 @@ preview_monthly_summary:
 
 share_experience:
   name: Erlebnis teilen
-  description: Teilt ein Erlebnis über den konfigurierten Social-Provider (Roadmap-Basis).
+  description: Erzeugt Share-Links für manuelles Teilen (z. B. Instagram/X/Facebook/WhatsApp/Telegram).
   fields:
     experience_id:
       required: true
@@ -136,7 +136,7 @@ share_experience:
 
 share_monthly_summary:
   name: Monatszusammenfassung teilen
-  description: Teilt die Monatszusammenfassung über den konfigurierten Social-Provider (Roadmap-Basis).
+  description: Erzeugt Share-Links für den Monatsrückblick zum manuellen Teilen.
   fields:
     month:
       required: false

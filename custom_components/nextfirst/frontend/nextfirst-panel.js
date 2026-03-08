@@ -26,7 +26,8 @@ class NextFirstPanel extends HTMLElement {
     this._error = "";
     this._ready = false;
     this._summaryPreview = null;
-    this._socialHistory = [];
+    this._protocolHistory = [];
+    this._pendingMediaExperienceId = null;
   }
 
   set hass(hass) {
@@ -43,7 +44,7 @@ class NextFirstPanel extends HTMLElement {
   }
 
   async _api(method, path, body) {
-    return this._hass.callApi(method, path, body);
+    return this._hass.callApi(String(method).toUpperCase(), path, body);
   }
 
   async _load() {
@@ -54,8 +55,8 @@ class NextFirstPanel extends HTMLElement {
       const data = await this._api("get", "nextfirst/experiences");
       this._items = data.items || [];
       this._stats = data.stats || {};
-      const history = await this._api("get", "nextfirst/share/history?limit=20");
-      this._socialHistory = history.history || [];
+      const history = await this._api("get", "nextfirst/protocol?limit=50");
+      this._protocolHistory = history.history || [];
     } catch (err) {
       this._error = err?.message || String(err);
     } finally {
@@ -144,9 +145,38 @@ class NextFirstPanel extends HTMLElement {
   }
 
   async _addMedia(id) {
-    const path = prompt("Bildpfad (z. B. /media/nextfirst/foto.jpg):", "");
-    if (!path || !path.trim()) return;
-    await this._action(id, "media", { path: path.trim() });
+    this._pendingMediaExperienceId = id;
+    this.shadowRoot.getElementById("mediaUploadInput")?.click();
+  }
+
+  async _uploadMediaFile(file) {
+    if (!file || !this._pendingMediaExperienceId) return;
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      const response = await fetch(
+        `/api/nextfirst/experiences/${this._pendingMediaExperienceId}/media/upload`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${this._hass.auth.data.accessToken}`,
+          },
+          body: form,
+        }
+      );
+      if (!response.ok) {
+        const message = await response.text();
+        throw new Error(message || `Upload fehlgeschlagen (${response.status})`);
+      }
+      await this._load();
+    } catch (err) {
+      this._error = err?.message || String(err);
+      this._render();
+    } finally {
+      this._pendingMediaExperienceId = null;
+      const input = this.shadowRoot.getElementById("mediaUploadInput");
+      if (input) input.value = "";
+    }
   }
 
   async _addNote(id, currentNote) {
@@ -183,12 +213,13 @@ class NextFirstPanel extends HTMLElement {
 
   async _shareMonthlySummary() {
     const text = prompt("Optional eigener Text für Monatsrückblick:", "") ?? "";
-    const hashtags = prompt("Hashtags (CSV, optional):", "") ?? "";
+    const hashtags = prompt("Hashtags (kommasepariert, optional):", "") ?? "";
     try {
-      await this._api("post", "nextfirst/share/monthly", {
+      const result = await this._api("post", "nextfirst/share/monthly", {
         text: text.trim() || undefined,
         hashtags: hashtags.trim() || undefined,
       });
+      this._openShareChooser(result.text, result.share_urls || {});
       await this._load();
     } catch (err) {
       this._error = err?.message || String(err);
@@ -199,16 +230,33 @@ class NextFirstPanel extends HTMLElement {
   async _shareExperience(id, defaultTitle) {
     const text =
       prompt("Optional eigener Share-Text:", `Neues NextFirst Erlebnis: ${defaultTitle}`) ?? "";
-    const hashtags = prompt("Hashtags (CSV, optional):", "") ?? "";
+    const hashtags = prompt("Hashtags (kommasepariert, optional):", "") ?? "";
     try {
-      await this._api("post", `nextfirst/share/experience/${id}`, {
+      const result = await this._api("post", `nextfirst/share/experience/${id}`, {
         text: text.trim() || undefined,
         hashtags: hashtags.trim() || undefined,
       });
+      this._openShareChooser(result.text, result.share_urls || {});
       await this._load();
     } catch (err) {
       this._error = err?.message || String(err);
       this._render();
+    }
+  }
+
+  _openShareChooser(text, urls) {
+    const selection = prompt(
+      "Teilen über: instagram, x, facebook, whatsapp oder telegram\n(Hinweis: Text wird in die Zwischenablage kopiert.)",
+      "instagram"
+    );
+    if (!selection) return;
+    const provider = selection.trim().toLowerCase();
+    if (navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(text).catch(() => {});
+    }
+    const url = urls[provider];
+    if (url) {
+      window.open(url, "_blank", "noopener,noreferrer");
     }
   }
 
@@ -304,18 +352,16 @@ class NextFirstPanel extends HTMLElement {
       const preview = this._summaryPreview
         ? `<div class="state"><strong>Monatsvorschau:</strong><br>${this._escape(this._summaryPreview.summary_text || "")}</div>`
         : `<div class="state">Noch keine Monatsvorschau geladen.</div>`;
-      const history = this._socialHistory.length
-        ? `<ul class="history">${this._socialHistory
+      const history = this._protocolHistory.length
+        ? `<ul class="history">${this._protocolHistory
             .map(
               (h) =>
                 `<li><strong>${this._escape(h.timestamp || "-")}</strong> | ${this._escape(
-                  h.provider || "-"
-                )} | ${this._escape(h.source_type || "-")} | ${this._escape(
-                  String(h.ok)
-                )}<br>${this._escape(h.message || "")}</li>`
+                  h.level || "-"
+                )} | ${this._escape(h.action || "-")}<br>${this._escape(h.message || "")}</li>`
             )
             .join("")}</ul>`
-        : `<div class="state">Noch keine Share-Historie vorhanden.</div>`;
+        : `<div class="state">Noch keine NextFirst-Protokolleinträge vorhanden.</div>`;
 
       return `
         <div class="toolbar">
@@ -349,6 +395,12 @@ class NextFirstPanel extends HTMLElement {
     this.shadowRoot
       .getElementById("shareMonthlyBtn")
       ?.addEventListener("click", () => this._shareMonthlySummary());
+    this.shadowRoot
+      .getElementById("mediaUploadInput")
+      ?.addEventListener("change", (event) => {
+        const file = event?.target?.files?.[0];
+        if (file) this._uploadMediaFile(file);
+      });
 
     this.shadowRoot.querySelectorAll("button[data-action]").forEach((btn) => {
       btn.addEventListener("click", async () => {
@@ -562,6 +614,7 @@ class NextFirstPanel extends HTMLElement {
         </div>
 
         <section>${this._renderBody()}</section>
+        <input id="mediaUploadInput" type="file" accept="image/*" style="display:none" />
       </div>
     `;
 

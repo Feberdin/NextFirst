@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.3.4 - 2026-03-08
+
+- Hotfix: Sensoren wieder voll kompatibel mit aktueller HA-Version (`entity_registry_visible_default`)
+- Hotfix: Panel sendet HTTP-Methoden korrekt in Großbuchstaben (`PATCH`-Fehler behoben)
+- Fix: KI-Antwortparser akzeptiert jetzt reale OpenAI-Formate (`activities`, Einzelobjekt, JSON-Block)
+- Neu: Bild-Upload direkt im Panel (Dateiauswahl) statt manuellem Dateipfad
+- Änderung: Social-Flow auf manuelles Teilen über direkte Share-Links umgestellt (ohne Webhook/Mastodon/Bluesky-Zwang)
+- Änderung: Automatisches Monats-Autoposting entfernt
+- Neu: NextFirst-eigenes Protokoll mit API (`/api/nextfirst/protocol`) für Debug/Support
+- UX: Optionen klarer benannt (kommaseparierte Felder, Interessen/Ausschlüsse, Fahrzeit-Startpunkt)
+
 ## 0.3.3 - 2026-03-08
 
 - Hotfix: OptionsFlow Konstruktor für diese HA-Version korrigiert (`NextFirstOptionsFlow(config_entry)`)

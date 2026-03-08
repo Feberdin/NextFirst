@@ -24,7 +24,7 @@ Die Integration verbindet:
 
 - Konfigurationsgrundlagen für Social Sharing, Monatsrückblick und Bild-Preprocessing sind integriert
 - Neue Services: `nextfirst.preview_monthly_summary`, `nextfirst.share_experience`, `nextfirst.share_monthly_summary`
-- Social Provider integriert: `webhook`, `mastodon`, `bluesky`
+- Social Sharing als direkte Share-Links (z. B. Instagram/X/Facebook/WhatsApp/Telegram)
 - Debug-Schalter in Optionen (`debug_enabled`) ergänzt
 
 - Eigener Sidebar-Panel-Eintrag `NextFirst`
@@ -37,7 +37,7 @@ Die Integration verbindet:
   - Erstellen, Bearbeiten, Löschen
   - Als übersprungen markieren, reaktivieren
   - Als erlebt markieren, archivieren
-  - Notiz bearbeiten, Bildpfad hinzufügen
+  - Notiz bearbeiten, Bild-Upload
 - Home-Assistant-Services für Automationen (`nextfirst.*`)
 - Sensoren für Statistiken (`sensor.nextfirst_*`)
 - Optionaler KI-Modus (provider-neutral vorbereitet, v1 OpenAI)
@@ -51,6 +51,14 @@ Die Integration verbindet:
 - [License](LICENSE)
 
 ## Antichronologischer Changelog
+
+### v0.3.4 (2026-03-08)
+
+- Sensor-Fix für aktuelle HA-EntityDescription
+- Datei-Upload für Bilder im Panel
+- KI-Parser robuster für reale OpenAI-Antworten
+- Social-Sharing vereinfacht auf direkte Share-Links
+- NextFirst-eigenes Protokoll ergänzt
 
 ### v0.3.3 (2026-03-08)
 

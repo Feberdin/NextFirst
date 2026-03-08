@@ -70,6 +70,8 @@ class NextFirstStorage:
             merged = default_root_document()
             merged.update(doc)
             merged.setdefault("experiences", [])
+            merged.setdefault("social_history", [])
+            merged.setdefault("protocol_history", [])
             merged["schema_version"] = 1
             return merged
 

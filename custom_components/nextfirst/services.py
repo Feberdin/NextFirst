@@ -49,12 +49,23 @@ from .const import (
 from .domain import utc_now_iso
 from .errors import NextFirstError
 from .manager import NextFirstManager
-from .media_processing.service import preprocess_social_media
 from .monthly_summary import build_monthly_summary
-from .social.base import SocialPostRequest
-from .social.service import post_to_social
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _build_share_urls(text: str) -> dict[str, str]:
+    """Create clickable share URLs for manual posting."""
+    from urllib.parse import quote_plus
+
+    encoded = quote_plus(text)
+    return {
+        "x": f"https://x.com/intent/post?text={encoded}",
+        "facebook": f"https://www.facebook.com/sharer/sharer.php?quote={encoded}",
+        "whatsapp": f"https://wa.me/?text={encoded}",
+        "telegram": f"https://t.me/share/url?text={encoded}",
+        "instagram": "https://www.instagram.com/",
+    }
 
 
 async def async_register_services(
@@ -202,36 +213,25 @@ async def async_register_services(
             hashtags = _split_hashtags(
                 str(call.data.get("hashtags") or options_getter().get(CONF_SOCIAL_DEFAULT_HASHTAGS, ""))
             )
-            media_paths = [
-                str(media.get("path"))
-                for media in (entry.get("media") or [])
-                if isinstance(media, dict) and media.get("path")
-            ]
-            preprocess_result = await preprocess_social_media(options_getter(), media_paths)
-            session = aiohttp_client.async_get_clientsession(hass)
-            post_result = await post_to_social(
-                options_getter(),
-                SocialPostRequest(
-                    text=base_text,
-                    media_paths=preprocess_result.transformed_paths,
-                    hashtags=hashtags,
-                    source_type="experience",
-                    source_id=experience_id,
-                ),
-                session=session,
-            )
+            share_text = f"{base_text}\n\n{' '.join(f'#{tag}' for tag in hashtags)}".strip()
+            urls = _build_share_urls(share_text)
             await manager.async_record_share_event(
                 source_type="experience",
                 source_id=experience_id,
-                provider=post_result.provider_name,
-                ok=post_result.ok,
-                message=post_result.message,
+                provider="local_share",
+                ok=True,
+                message="Share URLs generated for manual posting.",
             )
             persistent_notification.async_create(
                 hass,
                 message=(
-                    f"Share Erlebnis ({post_result.provider_name}): {post_result.message}\n"
-                    f"Preprocess: {preprocess_result.message}"
+                    "Share-Links wurden erzeugt (Text bitte aus Notification kopieren):\n\n"
+                    f"{share_text}\n\n"
+                    f"Instagram: {urls['instagram']}\n"
+                    f"X: {urls['x']}\n"
+                    f"Facebook: {urls['facebook']}\n"
+                    f"WhatsApp: {urls['whatsapp']}\n"
+                    f"Telegram: {urls['telegram']}"
                 ),
                 title="NextFirst Social Share",
                 notification_id="nextfirst_social_share_experience",
@@ -248,31 +248,25 @@ async def async_register_services(
             hashtags = _split_hashtags(
                 str(call.data.get("hashtags") or options_getter().get(CONF_SOCIAL_DEFAULT_HASHTAGS, ""))
             )
-            session = aiohttp_client.async_get_clientsession(hass)
-            post_result = await post_to_social(
-                options_getter(),
-                SocialPostRequest(
-                    text=post_text,
-                    media_paths=[],
-                    hashtags=hashtags,
-                    source_type="monthly_summary",
-                    source_id=month,
-                ),
-                session=session,
-            )
+            share_text = f"{post_text}\n\n{' '.join(f'#{tag}' for tag in hashtags)}".strip()
+            urls = _build_share_urls(share_text)
             await manager.async_record_share_event(
                 source_type="monthly_summary",
                 source_id=month,
-                provider=post_result.provider_name,
-                ok=post_result.ok,
-                message=post_result.message,
+                provider="local_share",
+                ok=True,
+                message="Share URLs generated for manual posting.",
             )
             persistent_notification.async_create(
                 hass,
                 message=(
-                    f"Share Monatsrückblick {month} ({post_result.provider_name}): "
-                    f"{post_result.message}\n\n"
-                    f"Vorschau: {summary['summary_text']}"
+                    f"Share-Links für Monatsrückblick {month}:\n\n"
+                    f"{share_text}\n\n"
+                    f"Instagram: {urls['instagram']}\n"
+                    f"X: {urls['x']}\n"
+                    f"Facebook: {urls['facebook']}\n"
+                    f"WhatsApp: {urls['whatsapp']}\n"
+                    f"Telegram: {urls['telegram']}"
                 ),
                 title="NextFirst Monthly Share",
                 notification_id="nextfirst_social_share_monthly",

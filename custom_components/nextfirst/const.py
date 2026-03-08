@@ -31,6 +31,7 @@ CONF_AI_TEMPERATURE = "ai_temperature"
 CONF_AI_MAX_TOKENS = "ai_max_tokens"
 CONF_AI_API_KEY = "ai_api_key"
 CONF_MAX_TRAVEL_MINUTES = "max_travel_minutes"
+CONF_TRAVEL_ORIGIN = "travel_origin"
 CONF_FAMILY_FRIENDLY_ONLY = "family_friendly_only"
 CONF_GOOD_WEATHER_ONLY = "good_weather_only"
 CONF_PREFERRED_CATEGORIES = "preferred_categories"
@@ -64,6 +65,7 @@ DEFAULT_OPTIONS = {
     CONF_AI_MAX_TOKENS: 600,
     CONF_AI_API_KEY: "",
     CONF_MAX_TRAVEL_MINUTES: 60,
+    CONF_TRAVEL_ORIGIN: "zone.home",
     CONF_FAMILY_FRIENDLY_ONLY: False,
     CONF_GOOD_WEATHER_ONLY: False,
     CONF_PREFERRED_CATEGORIES: [],

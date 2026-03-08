@@ -69,6 +69,7 @@ class OpenAISuggestionProvider:
         user_prompt = {
             "count": context.suggestion_count,
             "max_travel_minutes": context.max_travel_minutes,
+            "travel_origin": context.travel_origin,
             "family_friendly_only": context.family_friendly_only,
             "good_weather_only": context.good_weather_only,
             "preferred_categories": context.preferred_categories,
@@ -115,13 +116,8 @@ class OpenAISuggestionProvider:
         try:
             top = json.loads(body)
             content = top["choices"][0]["message"]["content"]
-            parsed = json.loads(content)
-            if isinstance(parsed, dict) and "suggestions" in parsed:
-                items = parsed["suggestions"]
-            elif isinstance(parsed, list):
-                items = parsed
-            else:
-                raise ValueError("Unsupported JSON shape")
+            parsed = _parse_content_json(content)
+            items = _extract_items(parsed)
         except Exception as err:
             _LOGGER.debug("Raw AI response: %s", body)
             raise AIProviderError(
@@ -131,6 +127,8 @@ class OpenAISuggestionProvider:
 
         drafts: list[SuggestionDraft] = []
         for item in items:
+            if not isinstance(item, dict):
+                continue
             title = str(item.get("title", "")).strip()
             if not title:
                 continue
@@ -139,7 +137,7 @@ class OpenAISuggestionProvider:
                     title=title,
                     description=item.get("description"),
                     category=item.get("category"),
-                    courage_level=item.get("courage_level"),
+                    courage_level=_normalize_courage_level(item.get("courage_level")),
                     duration_minutes=item.get("duration_minutes"),
                     cost_level=item.get("cost_level"),
                     travel_minutes=item.get("travel_minutes"),
@@ -156,3 +154,45 @@ class OpenAISuggestionProvider:
             )
 
         return drafts
+
+
+def _parse_content_json(content: Any) -> Any:
+    """Parse model content into JSON, tolerating markdown fences and whitespace."""
+    if isinstance(content, list):
+        content = "".join(
+            str(part.get("text", ""))
+            for part in content
+            if isinstance(part, dict)
+        )
+    text = str(content or "").strip()
+    if text.startswith("```"):
+        text = text.strip("`")
+        if text.startswith("json"):
+            text = text[4:].strip()
+    return json.loads(text)
+
+
+def _extract_items(parsed: Any) -> list[dict[str, Any]]:
+    """Normalize varying provider payload shapes to list-of-item dicts."""
+    if isinstance(parsed, list):
+        return [item for item in parsed if isinstance(item, dict)]
+    if isinstance(parsed, dict):
+        for key in ("suggestions", "activities", "items", "results"):
+            value = parsed.get(key)
+            if isinstance(value, list):
+                return [item for item in value if isinstance(item, dict)]
+        if "title" in parsed:
+            return [parsed]
+    raise ValueError("Unsupported AI JSON shape")
+
+
+def _normalize_courage_level(value: Any) -> str | None:
+    """Map numeric courage values to friendly labels used in NextFirst filters."""
+    if value is None:
+        return None
+    if isinstance(value, int):
+        return {1: "leicht", 2: "mittel", 3: "mutig", 4: "verrueckt"}.get(value, str(value))
+    raw = str(value).strip().lower()
+    if raw in {"leicht", "mittel", "mutig", "verrueckt", "verrückt"}:
+        return "verrueckt" if raw == "verrückt" else raw
+    return raw or None

@@ -42,19 +42,13 @@ from .const import (
     CONF_MONTHLY_SUMMARY_HOUR,
     CONF_PREFERRED_CATEGORIES,
     CONF_PREFERRED_COURAGE_LEVELS,
-    CONF_SOCIAL_AUTO_SHARE_MONTHLY,
-    CONF_SOCIAL_BLUESKY_APP_PASSWORD,
-    CONF_SOCIAL_BLUESKY_HANDLE,
     CONF_SOCIAL_DEFAULT_HASHTAGS,
     CONF_SOCIAL_ENABLED,
     CONF_SOCIAL_IMAGE_PREPROCESS_ENABLED,
     CONF_SOCIAL_IMAGE_PREPROCESS_PROMPT,
     CONF_SOCIAL_INCLUDE_AI_TEXT,
     CONF_SOCIAL_KIDS_PRIVACY_MODE,
-    CONF_SOCIAL_MASTODON_ACCESS_TOKEN,
-    CONF_SOCIAL_MASTODON_BASE_URL,
-    CONF_SOCIAL_PROVIDER,
-    CONF_SOCIAL_WEBHOOK_URL,
+    CONF_TRAVEL_ORIGIN,
     DEFAULT_OPTIONS,
     DOMAIN,
 )
@@ -121,7 +115,9 @@ class NextFirstOptionsFlow(config_entries.OptionsFlow):
         schema = vol.Schema(
             {
                 vol.Optional(CONF_AI_ENABLED, default=current[CONF_AI_ENABLED]): bool,
-                vol.Optional(CONF_AI_PROVIDER, default=current[CONF_AI_PROVIDER]): str,
+                vol.Optional(CONF_AI_PROVIDER, default=current[CONF_AI_PROVIDER]): vol.In(
+                    ["openai"]
+                ),
                 vol.Optional(CONF_AI_MODEL, default=current[CONF_AI_MODEL]): str,
                 vol.Optional(
                     CONF_AI_SUGGESTION_COUNT,
@@ -138,6 +134,10 @@ class NextFirstOptionsFlow(config_entries.OptionsFlow):
                     CONF_MAX_TRAVEL_MINUTES,
                     default=current[CONF_MAX_TRAVEL_MINUTES],
                 ): vol.All(int, vol.Range(min=0, max=300)),
+                vol.Optional(
+                    CONF_TRAVEL_ORIGIN,
+                    default=current[CONF_TRAVEL_ORIGIN],
+                ): str,
                 vol.Optional(
                     CONF_FAMILY_FRIENDLY_ONLY,
                     default=current[CONF_FAMILY_FRIENDLY_ONLY],
@@ -157,13 +157,6 @@ class NextFirstOptionsFlow(config_entries.OptionsFlow):
                 vol.Optional(CONF_CUSTOM_INTERESTS, default=current[CONF_CUSTOM_INTERESTS]): str,
                 vol.Optional(CONF_EXCLUSIONS, default=current[CONF_EXCLUSIONS]): str,
                 vol.Optional(CONF_SOCIAL_ENABLED, default=current[CONF_SOCIAL_ENABLED]): bool,
-                vol.Optional(CONF_SOCIAL_PROVIDER, default=current[CONF_SOCIAL_PROVIDER]): vol.In(
-                    ["none", "webhook", "mastodon", "bluesky"]
-                ),
-                vol.Optional(
-                    CONF_SOCIAL_AUTO_SHARE_MONTHLY,
-                    default=current[CONF_SOCIAL_AUTO_SHARE_MONTHLY],
-                ): bool,
                 vol.Optional(
                     CONF_SOCIAL_DEFAULT_HASHTAGS,
                     default=current[CONF_SOCIAL_DEFAULT_HASHTAGS],
@@ -196,23 +189,6 @@ class NextFirstOptionsFlow(config_entries.OptionsFlow):
                     CONF_MONTHLY_SUMMARY_HOUR,
                     default=current[CONF_MONTHLY_SUMMARY_HOUR],
                 ): vol.All(int, vol.Range(min=0, max=23)),
-                vol.Optional(CONF_SOCIAL_WEBHOOK_URL, default=current[CONF_SOCIAL_WEBHOOK_URL]): str,
-                vol.Optional(
-                    CONF_SOCIAL_MASTODON_BASE_URL,
-                    default=current[CONF_SOCIAL_MASTODON_BASE_URL],
-                ): str,
-                vol.Optional(
-                    CONF_SOCIAL_MASTODON_ACCESS_TOKEN,
-                    default=current[CONF_SOCIAL_MASTODON_ACCESS_TOKEN],
-                ): str,
-                vol.Optional(
-                    CONF_SOCIAL_BLUESKY_HANDLE,
-                    default=current[CONF_SOCIAL_BLUESKY_HANDLE],
-                ): str,
-                vol.Optional(
-                    CONF_SOCIAL_BLUESKY_APP_PASSWORD,
-                    default=current[CONF_SOCIAL_BLUESKY_APP_PASSWORD],
-                ): str,
                 vol.Optional(CONF_DEBUG_ENABLED, default=current[CONF_DEBUG_ENABLED]): bool,
             }
         )

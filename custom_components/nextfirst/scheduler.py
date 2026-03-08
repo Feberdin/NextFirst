@@ -2,11 +2,10 @@
 
 Purpose:
 - Trigger monthly summary generation at configured day/hour.
-- Optionally auto-share the summary through the configured social provider.
 
 Input/Output:
 - Input: Home Assistant time events + integration options.
-- Output: notifications, optional social posting, and share history entries.
+- Output: notifications for monthly summaries.
 
 Invariants:
 - At most one run per month key (`YYYY-MM`) for each loaded entry.
@@ -24,19 +23,15 @@ from typing import Any, Callable
 
 from homeassistant.components import persistent_notification
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers import aiohttp_client
 from homeassistant.helpers.event import async_track_time_change
 
 from .const import (
     CONF_MONTHLY_SUMMARY_DAY,
     CONF_MONTHLY_SUMMARY_ENABLED,
     CONF_MONTHLY_SUMMARY_HOUR,
-    CONF_SOCIAL_AUTO_SHARE_MONTHLY,
 )
 from .manager import NextFirstManager
 from .monthly_summary import build_monthly_summary
-from .social.base import SocialPostRequest
-from .social.service import post_to_social
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -75,29 +70,7 @@ def async_setup_monthly_scheduler(
             notification_id=f"nextfirst_monthly_summary_{month_key}",
         )
 
-        if bool(opts.get(CONF_SOCIAL_AUTO_SHARE_MONTHLY, False)):
-            session = aiohttp_client.async_get_clientsession(hass)
-            result = await post_to_social(
-                opts,
-                SocialPostRequest(
-                    text=summary["summary_text"],
-                    source_type="monthly_summary",
-                    source_id=month_key,
-                ),
-                session=session,
-            )
-            await manager.async_record_share_event(
-                source_type="monthly_summary",
-                source_id=month_key,
-                provider=result.provider_name,
-                ok=result.ok,
-                message=result.message,
-            )
-            _LOGGER.info(
-                "Monthly summary auto-share result provider=%s ok=%s",
-                result.provider_name,
-                result.ok,
-            )
+        _LOGGER.debug("Monthly summary created for %s", month_key)
 
     # Check every full hour, then evaluate day/hour guard in callback.
     unsubscribe = async_track_time_change(hass, _on_tick, minute=0, second=0)
