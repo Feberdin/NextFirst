@@ -138,6 +138,8 @@ class NextFirstExperiencesView(NextFirstBaseView):
                 budget_per_person_eur=body.get("budget_per_person_eur"),
                 duration_minutes=body.get("duration_minutes"),
                 notes=body.get("notes"),
+                location=body.get("location"),
+                offer_url=body.get("offer_url"),
             )
             return web.json_response({"ok": True, "item": created})
         except Exception as err:

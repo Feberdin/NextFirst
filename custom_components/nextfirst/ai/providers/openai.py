@@ -135,6 +135,12 @@ class OpenAISuggestionProvider:
                         or item.get("venue")
                         or item.get("ort")
                     ),
+                    offer_url=(
+                        item.get("offer_url")
+                        or item.get("website_url")
+                        or item.get("booking_url")
+                        or item.get("url")
+                    ),
                     budget_per_person_eur=_to_int(item.get("budget_per_person_eur")),
                 )
             )
@@ -154,12 +160,13 @@ def build_openai_prompt_payload(context: SuggestionContext) -> tuple[str, dict[s
         "Return strict JSON with exactly the requested number of ideas. "
         "Use either a JSON array or object key 'suggestions'. "
         "Each item must include title and a concrete location with a googleable full address. "
+        "Each item must include a real website URL where the offer/activity can be found. "
         "Avoid generic ideas without place names. "
         "Prefer nearby places that satisfy max_travel_minutes from travel_origin. "
         "Each item may include "
         "description, category, courage_level, duration_minutes, cost_level, "
         "travel_minutes, family_friendly, indoor_outdoor, weather_hint, notes, "
-        "location, location_address, budget_per_person_eur."
+        "location, location_address, offer_url, website_url, budget_per_person_eur."
     )
 
     user_prompt = {
@@ -175,6 +182,7 @@ def build_openai_prompt_payload(context: SuggestionContext) -> tuple[str, dict[s
         "exclusions": context.exclusions,
         "language": "de",
         "location_format": "name, street, postal_code city, country",
+        "offer_url_required": True,
     }
     return system_prompt, user_prompt
 

@@ -158,6 +158,7 @@ class Experience:
     rating: int | None = None
     would_repeat: bool | None = None
     location: str | None = None
+    offer_url: str | None = None
     media: list[MediaRef] = field(default_factory=list)
     history: list[StatusHistoryEntry] = field(default_factory=list)
     extra: dict[str, Any] = field(default_factory=dict)
@@ -195,6 +196,8 @@ class Experience:
             indoor_outdoor=kwargs.get("indoor_outdoor"),
             family_friendly=kwargs.get("family_friendly"),
             notes=kwargs.get("notes"),
+            location=kwargs.get("location"),
+            offer_url=kwargs.get("offer_url"),
             extra=dict(kwargs.get("extra") or {}),
         )
 
@@ -243,6 +246,7 @@ class Experience:
             "rating": self.rating,
             "would_repeat": self.would_repeat,
             "location": self.location,
+            "offer_url": self.offer_url,
             "media": [m.to_dict() for m in self.media],
             "history": [h.to_dict() for h in self.history],
             "extra": self.extra,
@@ -280,6 +284,7 @@ class Experience:
             "rating",
             "would_repeat",
             "location",
+            "offer_url",
             "media",
             "history",
             "extra",
@@ -310,6 +315,7 @@ class Experience:
             rating=raw.get("rating"),
             would_repeat=raw.get("would_repeat"),
             location=raw.get("location"),
+            offer_url=raw.get("offer_url"),
             media=[MediaRef.from_dict(item) for item in (raw.get("media") or [])],
             history=[StatusHistoryEntry.from_dict(item) for item in (raw.get("history") or [])],
             extra={**dict(raw.get("extra") or {}), **dynamic_extra},

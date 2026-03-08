@@ -52,6 +52,16 @@ Die Integration verbindet:
 
 ## Antichronologischer Changelog
 
+### v0.3.12 (2026-03-08)
+
+- Startpunkt für Fahrzeit auf Wohnort-/Startadresse umgestellt (kein `zone.home`-Standard mehr)
+- KI-Generierung validiert Startadresse und zeigt klare Fehlermeldung bei fehlender Adresse
+- KI-Prompt erweitert: volle Adresse + Angebots-URL werden explizit verlangt
+- KI-Parser erweitert (`offer_url`, `website_url`, `booking_url`, `url`) und Angebots-Link wird gespeichert
+- Adress-Normalisierung verbessert (Nominatim + Fallback-Abfragen), nur konkrete Adressen werden akzeptiert
+- UI ergänzt: direkter `Angebot`-Button zusätzlich zu `Maps`
+- Default `max_tokens` auf `900` erhöht
+
 ### v0.3.11 (2026-03-08)
 
 - UI: Ladebalken mit Laufzeitanzeige während der KI-Generierung ergänzt

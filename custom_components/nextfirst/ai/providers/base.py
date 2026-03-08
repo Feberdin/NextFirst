@@ -29,7 +29,7 @@ class SuggestionContext:
     family_friendly_only: bool
     good_weather_only: bool
     budget_per_person_eur: int = 0
-    travel_origin: str = "zone.home"
+    travel_origin: str = ""
     preferred_categories: list[str] = field(default_factory=list)
     preferred_courage_levels: list[str] = field(default_factory=list)
     custom_interests: str = ""
@@ -52,6 +52,7 @@ class SuggestionDraft:
     weather_hint: str | None = None
     notes: str | None = None
     location: str | None = None
+    offer_url: str | None = None
     budget_per_person_eur: int | None = None
 
 

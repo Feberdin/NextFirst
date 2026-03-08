@@ -31,7 +31,7 @@
           "ai_max_tokens": "Max. Tokens",
           "ai_api_key": "API-Schlüssel",
           "max_travel_minutes": "Maximale Fahrzeit (Minuten)",
-          "travel_origin": "Startpunkt Fahrzeit (Entity-ID, z. B. zone.home)",
+          "travel_origin": "Wohnort/Startadresse (z. B. Musterstr. 1, 12345 Musterstadt)",
           "family_friendly_only": "Nur familienfreundlich",
           "good_weather_only": "Nur bei gutem Wetter",
           "preferred_categories": "Bevorzugte Kategorien (kommasepariert)",

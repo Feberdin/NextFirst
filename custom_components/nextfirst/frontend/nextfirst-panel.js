@@ -324,6 +324,14 @@ class NextFirstPanel extends HTMLElement {
     return query ? `https://www.google.com/maps/search/?api=1&query=${query}` : "";
   }
 
+  _externalUrl(url) {
+    const raw = String(url || "").trim();
+    if (!raw) return "";
+    if (raw.startsWith("http://") || raw.startsWith("https://")) return raw;
+    if (raw.includes(".") && !raw.includes(" ")) return `https://${raw}`;
+    return "";
+  }
+
   _calendarUrl(item) {
     const title = encodeURIComponent(String(item?.title || "NextFirst Erlebnis"));
     const location = encodeURIComponent(String(item?.location || ""));
@@ -428,6 +436,7 @@ class NextFirstPanel extends HTMLElement {
       ? `<span class="pill">Budget/Person: ${this._escape(budgetValue)} EUR</span>`
       : "";
     const mapsUrl = this._mapsUrl(item.location);
+    const offerUrl = this._externalUrl(item.offer_url || item.extra?.offer_url);
     const calendarUrl = this._calendarUrl(item);
 
     let actions = "";
@@ -437,6 +446,7 @@ class NextFirstPanel extends HTMLElement {
         <button data-action="skip" data-id="${item.id}">Überspringen</button>
         <button data-action="experience" data-id="${item.id}">Als erlebt markieren</button>
         ${mapsUrl ? `<a class="action-link" href="${this._escape(mapsUrl)}" target="_blank" rel="noopener noreferrer">Maps</a>` : ""}
+        ${offerUrl ? `<a class="action-link" href="${this._escape(offerUrl)}" target="_blank" rel="noopener noreferrer">Angebot</a>` : ""}
         <button data-action="calendar_ics" data-id="${item.id}">Kalender (.ics)</button>
         <a class="action-link" href="${this._escape(calendarUrl)}" target="_blank" rel="noopener noreferrer">Google Kalender</a>
         <button class="danger" data-action="delete" data-id="${item.id}">Löschen</button>
@@ -446,6 +456,7 @@ class NextFirstPanel extends HTMLElement {
         <button data-action="reactivate" data-id="${item.id}">Zurück zu offen</button>
         <button data-action="edit" data-id="${item.id}">Bearbeiten</button>
         ${mapsUrl ? `<a class="action-link" href="${this._escape(mapsUrl)}" target="_blank" rel="noopener noreferrer">Maps</a>` : ""}
+        ${offerUrl ? `<a class="action-link" href="${this._escape(offerUrl)}" target="_blank" rel="noopener noreferrer">Angebot</a>` : ""}
         <button data-action="calendar_ics" data-id="${item.id}">Kalender (.ics)</button>
         <a class="action-link" href="${this._escape(calendarUrl)}" target="_blank" rel="noopener noreferrer">Google Kalender</a>
         <button class="danger" data-action="delete" data-id="${item.id}">Löschen</button>
@@ -456,6 +467,7 @@ class NextFirstPanel extends HTMLElement {
         <button data-action="media" data-id="${item.id}">Bild hinzufügen</button>
         <button data-action="share" data-id="${item.id}">Teilen</button>
         ${mapsUrl ? `<a class="action-link" href="${this._escape(mapsUrl)}" target="_blank" rel="noopener noreferrer">Maps</a>` : ""}
+        ${offerUrl ? `<a class="action-link" href="${this._escape(offerUrl)}" target="_blank" rel="noopener noreferrer">Angebot</a>` : ""}
         <button data-action="calendar_ics" data-id="${item.id}">Kalender (.ics)</button>
         <a class="action-link" href="${this._escape(calendarUrl)}" target="_blank" rel="noopener noreferrer">Google Kalender</a>
         <button data-action="archive" data-id="${item.id}">Ins Archiv</button>

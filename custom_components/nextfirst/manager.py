@@ -163,6 +163,7 @@ class NextFirstManager:
                 "rating",
                 "would_repeat",
                 "location",
+                "offer_url",
             }
 
             for key, value in updates.items():
@@ -363,6 +364,7 @@ class NextFirstManager:
             "category": exp.category,
             "completed_at": exp.completed_at,
             "location": exp.location,
+            "offer_url": exp.offer_url,
             "budget_per_person_eur": exp.budget_per_person_eur,
             "note": exp.notes,
             "rating": exp.rating,

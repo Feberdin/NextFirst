@@ -91,6 +91,8 @@ async def async_register_services(
                 travel_minutes=call.data.get("travel_minutes"),
                 budget_per_person_eur=call.data.get("budget_per_person_eur"),
                 notes=call.data.get("notes"),
+                location=call.data.get("location"),
+                offer_url=call.data.get("offer_url"),
             )
         except Exception as err:
             raise to_ha_error(err) from err
@@ -158,7 +160,7 @@ async def async_register_services(
                 manager=manager,
                 session=session,
                 options=options_getter(),
-                count_override=call.data.get("count"),
+                count_override=1,
             )
             persistent_notification.async_create(
                 hass,
@@ -289,6 +291,8 @@ async def async_register_services(
                     vol.Optional("travel_minutes"): int,
                     vol.Optional("budget_per_person_eur"): int,
                     vol.Optional("notes"): str,
+                    vol.Optional("location"): str,
+                    vol.Optional("offer_url"): str,
                 }
             ),
         ),
@@ -309,6 +313,7 @@ async def async_register_services(
                     vol.Optional("rating"): int,
                     vol.Optional("would_repeat"): bool,
                     vol.Optional("location"): str,
+                    vol.Optional("offer_url"): str,
                 }
             ),
         ),

@@ -10,6 +10,14 @@ create_experience:
       required: false
       selector:
         text:
+    location:
+      required: false
+      selector:
+        text:
+    offer_url:
+      required: false
+      selector:
+        text:
     budget_per_person_eur:
       required: false
       selector:
@@ -17,6 +25,14 @@ create_experience:
           min: 0
           max: 500
           mode: box
+    location:
+      required: false
+      selector:
+        text:
+    offer_url:
+      required: false
+      selector:
+        text:
 
 update_experience:
   name: Erlebnis bearbeiten

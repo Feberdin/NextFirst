@@ -18,6 +18,7 @@ Debugging:
 from __future__ import annotations
 
 import logging
+import re
 from typing import Any
 
 from aiohttp import ClientSession
@@ -83,22 +84,46 @@ async def _geocode_location(
     query = str(location or "").strip()
     if not query:
         return None
-    try:
-        async with session.get(
-            "https://nominatim.openstreetmap.org/search",
-            params={"q": query, "format": "jsonv2", "limit": 1},
-            headers={"User-Agent": "NextFirst/0.3"},
-            timeout=20,
-        ) as resp:
-            if resp.status >= 400:
-                return None
-            payload = await resp.json(content_type=None)
-            if not payload:
-                return None
-            first = payload[0]
-            return ((float(first["lat"]), float(first["lon"])), str(first.get("display_name", "")).strip())
-    except Exception:
-        return None
+    queries = [query, f"{query}, Deutschland"]
+    for candidate in queries:
+        try:
+            async with session.get(
+                "https://nominatim.openstreetmap.org/search",
+                params={"q": candidate, "format": "jsonv2", "limit": 1},
+                headers={"User-Agent": "NextFirst/0.3"},
+                timeout=20,
+            ) as resp:
+                if resp.status >= 400:
+                    continue
+                payload = await resp.json(content_type=None)
+                if not payload:
+                    continue
+                first = payload[0]
+                return ((float(first["lat"]), float(first["lon"])), str(first.get("display_name", "")).strip())
+        except Exception:
+            continue
+    return None
+
+
+def _looks_like_address(value: str | None) -> bool:
+    """Basic heuristic to detect a concrete, googleable address string."""
+    text = str(value or "").strip()
+    if len(text) < 10:
+        return False
+    return ("," in text and bool(re.search(r"\d", text))) or bool(re.search(r"\b\d{5}\b", text))
+
+
+def _normalize_offer_url(url: str | None, title: str, location: str | None) -> str:
+    """Return a safe external URL; fallback to Google search when provider did not return one."""
+    raw = str(url or "").strip()
+    if raw and raw.startswith(("http://", "https://")):
+        return raw
+    if raw and "." in raw and " " not in raw:
+        return f"https://{raw}"
+    from urllib.parse import quote_plus
+
+    q = " ".join(part for part in [title.strip(), str(location or "").strip()] if part)
+    return f"https://www.google.com/search?q={quote_plus(q or title.strip())}"
 
 
 def _build_context(options: dict[str, Any], *, suggestion_count: int) -> SuggestionContext:
@@ -109,7 +134,7 @@ def _build_context(options: dict[str, Any], *, suggestion_count: int) -> Suggest
         family_friendly_only=bool(options.get(CONF_FAMILY_FRIENDLY_ONLY, False)),
         good_weather_only=bool(options.get(CONF_GOOD_WEATHER_ONLY, False)),
         budget_per_person_eur=int(options.get(CONF_BUDGET_PER_PERSON_EUR, 0) or 0),
-        travel_origin=str(options.get(CONF_TRAVEL_ORIGIN, "zone.home") or "zone.home"),
+        travel_origin=str(options.get(CONF_TRAVEL_ORIGIN, "") or "").strip(),
         preferred_categories=list(options.get(CONF_PREFERRED_CATEGORIES, [])),
         preferred_courage_levels=list(options.get(CONF_PREFERRED_COURAGE_LEVELS, [])),
         custom_interests=str(options.get(CONF_CUSTOM_INTERESTS, "")),
@@ -186,7 +211,16 @@ async def generate_and_store_suggestions(
     # Product decision: exactly one suggestion per user action.
     target_count = 1
     context = _build_context(options, suggestion_count=target_count)
+    if not context.travel_origin or context.travel_origin.lower().startswith("zone."):
+        raise ValidationError(
+            "Wohnort/Startadresse fehlt. Fix: In NextFirst Optionen eine echte Adresse eintragen "
+            "(z. B. Musterstr. 1, 12345 Musterstadt) statt zone.home."
+        )
     origin_coords = _resolve_origin_coordinates(manager, context.travel_origin)
+    if origin_coords is None and context.travel_origin:
+        geocode_origin = await _geocode_location(session, context.travel_origin)
+        if geocode_origin is not None:
+            origin_coords = geocode_origin[0]
 
     provider = OpenAISuggestionProvider(
         session=session,
@@ -200,6 +234,7 @@ async def generate_and_store_suggestions(
     seen_titles: set[str] = set()
     attempts = 0
     dropped_missing_location = 0
+    dropped_missing_offer_url = 0
     dropped_distance = 0
     fallback_without_verified_route = 0
     # Providers may return fewer suggestions than requested; retry with remaining count.
@@ -227,8 +262,17 @@ async def generate_and_store_suggestions(
             if not str(draft.location or "").strip():
                 dropped_missing_location += 1
                 continue
+            # Fallback query with title improves hit rate for generic place names.
+            location_query = str(draft.location)
+            geocode_result = await _geocode_location(session, f"{draft.title}, {location_query}") or await _geocode_location(session, location_query)
+            if geocode_result is not None:
+                coords, normalized_address = geocode_result
+                if _looks_like_address(normalized_address):
+                    draft.location = normalized_address
+            elif not _looks_like_address(draft.location):
+                dropped_missing_location += 1
+                continue
             if origin_coords is not None:
-                geocode_result = await _geocode_location(session, str(draft.location))
                 if geocode_result is not None:
                     coords, normalized_address = geocode_result
                     drive_minutes = await _estimate_drive_minutes(session, origin_coords, coords)
@@ -237,7 +281,7 @@ async def generate_and_store_suggestions(
                             dropped_distance += 1
                             continue
                         draft.travel_minutes = drive_minutes
-                    if normalized_address:
+                    if _looks_like_address(normalized_address):
                         draft.location = normalized_address
                     else:
                         # Keep draft if routing service is unavailable; still enforce
@@ -262,6 +306,10 @@ async def generate_and_store_suggestions(
             elif draft.travel_minutes is not None and draft.travel_minutes > context.max_travel_minutes:
                 dropped_distance += 1
                 continue
+            draft.offer_url = _normalize_offer_url(draft.offer_url, draft.title, draft.location)
+            if not draft.offer_url:
+                dropped_missing_offer_url += 1
+                continue
             seen_titles.add(key)
             drafts.append(draft)
             if len(drafts) >= target_count:
@@ -284,6 +332,7 @@ async def generate_and_store_suggestions(
                 weather_hint=draft.weather_hint,
                 notes=draft.notes,
                 location=draft.location,
+                offer_url=draft.offer_url,
                 extra={
                     "estimated_budget_per_person_eur": draft.budget_per_person_eur,
                 },
@@ -293,10 +342,12 @@ async def generate_and_store_suggestions(
     manager.last_ai_generation = utc_now_iso()
     _LOGGER.info(
         "Generated %s AI suggestions (requested=%s, dropped_missing_location=%s, "
-        "dropped_distance=%s, fallback_without_verified_route=%s, count_override=%s)",
+        "dropped_missing_offer_url=%s, dropped_distance=%s, "
+        "fallback_without_verified_route=%s, count_override=%s)",
         len(created),
         target_count,
         dropped_missing_location,
+        dropped_missing_offer_url,
         dropped_distance,
         fallback_without_verified_route,
         count_override,

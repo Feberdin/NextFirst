@@ -1,7 +1,7 @@
 {
   "domain": "nextfirst",
   "name": "NextFirst",
-  "version": "0.3.11",
+  "version": "0.3.12",
   "documentation": "https://github.com/Feberdin/NextFirst",
   "issue_tracker": "https://github.com/Feberdin/NextFirst/issues",
   "config_flow": true,

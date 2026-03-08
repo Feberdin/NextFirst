@@ -111,6 +111,8 @@ class NextFirstOptionsFlow(config_entries.OptionsFlow):
 
         current = dict(DEFAULT_OPTIONS)
         current.update(self._entry.options)
+        if str(current.get(CONF_TRAVEL_ORIGIN, "")).strip().lower().startswith("zone."):
+            current[CONF_TRAVEL_ORIGIN] = ""
 
         schema = vol.Schema(
             {

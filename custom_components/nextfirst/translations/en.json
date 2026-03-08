@@ -31,7 +31,7 @@
           "ai_max_tokens": "Max tokens",
           "ai_api_key": "API key",
           "max_travel_minutes": "Max travel time (minutes)",
-          "travel_origin": "Travel start point (entity ID, for example zone.home)",
+          "travel_origin": "Home/start address (for example Main St 1, 12345 City)",
           "family_friendly_only": "Family friendly only",
           "good_weather_only": "Good weather only",
           "preferred_categories": "Preferred categories (comma-separated)",
