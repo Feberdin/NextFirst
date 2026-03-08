@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.2 - 2026-03-08
+
+- Hotfix: Sensor-Importfehler behoben (Dataclass-Feldreihenfolge in `sensor.py` korrigiert)
+- Hotfix: Panel-Frontend-Registrierung kompatibel gemacht (ohne `hass.components` Zugriff)
+
 ## 0.3.1 - 2026-03-08
 
 - Hotfix: Config-Flow 500 behoben (OptionsFlow Initialisierung angepasst)

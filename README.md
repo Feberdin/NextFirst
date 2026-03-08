@@ -52,6 +52,11 @@ Die Integration verbindet:
 
 ## Antichronologischer Changelog
 
+### v0.3.2 (2026-03-08)
+
+- Hotfix: ImportError in `sensor.py` behoben
+- Hotfix: Panel-Registrierung für deine HA-Version stabilisiert
+
 ### v0.3.1 (2026-03-08)
 
 - Hotfix für `Der Konfigurationsfluss konnte nicht geladen werden` (500 Fehler)
