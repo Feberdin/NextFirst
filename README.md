@@ -20,6 +20,12 @@ Die Integration verbindet:
 
 ## Features
 
+### Bereits gestartet (Roadmap-Phase Social/Album)
+
+- Konfigurationsgrundlagen für Social Sharing, Monatsrückblick und Bild-Preprocessing sind integriert
+- Neue Services: `nextfirst.preview_monthly_summary`, `nextfirst.share_experience`, `nextfirst.share_monthly_summary`
+- Provider-Anbindung folgt im nächsten Schritt (aktuell bewusste Placeholder mit klaren Hinweisen)
+
 - Eigener Sidebar-Panel-Eintrag `NextFirst`
 - Vier Hauptansichten im Panel:
   - `Offen`
@@ -44,6 +50,14 @@ Die Integration verbindet:
 - [License](LICENSE)
 
 ## Antichronologischer Changelog
+
+### v0.2.1 (2026-03-08)
+
+- Social/Album-Roadmap Phase 1 gestartet: neue Optionen, Services und Modul-Schnittstellen
+- Monatszusammenfassung als lokale Vorschau-Logik ergänzt (`nextfirst.preview_monthly_summary`)
+- Neue Service-Grundlagen für spätere Social-Provider-Integration
+- Datenschutz-Optionen für Kinderbild-Schutz und optionales Bild-Preprocessing ergänzt
+
 
 ### v0.2.0 (2026-03-08)
 

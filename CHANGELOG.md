@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.1 - 2026-03-08
+
+- Grundlagen für Social-Integration ergänzt (provider-neutrale Schnittstellen + neue Services)
+- Monatszusammenfassung als lokale Vorschau-Logik implementiert (`preview_monthly_summary`)
+- Optionen für Social-Posting, Datenschutzmodus für Kinderbilder und Bild-Preprocessing ergänzt
+- Roadmap-Platzhalter für Social-Provider und Bild-Transform-Provider mit klaren Fehlermeldungen
+
 ## 0.2.0 - 2026-03-08
 
 - Eigenes Sidebar-Panel `NextFirst` unter `/nextfirst` implementiert

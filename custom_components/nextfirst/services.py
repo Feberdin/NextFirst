@@ -28,6 +28,7 @@ from homeassistant.helpers import aiohttp_client
 
 from .ai.service import generate_and_store_suggestions
 from .const import (
+    CONF_SOCIAL_DEFAULT_HASHTAGS,
     DOMAIN,
     SERVICE_ADD_NOTE,
     SERVICE_ATTACH_MEDIA,
@@ -38,11 +39,19 @@ from .const import (
     SERVICE_GET_STATISTICS,
     SERVICE_MARK_EXPERIENCED,
     SERVICE_MARK_SKIPPED,
+    SERVICE_PREVIEW_MONTHLY_SUMMARY,
     SERVICE_REACTIVATE_EXPERIENCE,
+    SERVICE_SHARE_EXPERIENCE,
+    SERVICE_SHARE_MONTHLY_SUMMARY,
     SERVICE_UPDATE_EXPERIENCE,
 )
+from .domain import utc_now_iso
 from .errors import NextFirstError
 from .manager import NextFirstManager
+from .media_processing.service import preprocess_social_media
+from .monthly_summary import build_monthly_summary
+from .social.base import SocialPostRequest
+from .social.service import post_to_social
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -159,6 +168,92 @@ async def async_register_services(
         except Exception as err:
             raise to_ha_error(err) from err
 
+    async def preview_monthly_summary(call: ServiceCall) -> dict[str, Any]:
+        try:
+            month = str(call.data.get("month") or utc_now_iso()[:7])
+            summary = build_monthly_summary(manager.list_all(), month)
+            return summary
+        except Exception as err:
+            raise to_ha_error(err) from err
+
+    async def share_experience(call: ServiceCall) -> None:
+        try:
+            experience_id = call.data["experience_id"]
+            entry = next((item for item in manager.list_all() if item.get("id") == experience_id), None)
+            if entry is None:
+                raise HomeAssistantError(
+                    f"ExperienceNotFound: id={experience_id} not found. "
+                    "Fix: refresh list and verify the selected experience ID."
+                )
+
+            custom_text = str(call.data.get("text") or "").strip()
+            base_text = custom_text or (
+                f"Neues NextFirst Erlebnis: {entry.get('title', 'Unbenannt')}"
+                f"\nStatus: {entry.get('status', '-')}"
+            )
+            hashtags = _split_hashtags(
+                str(call.data.get("hashtags") or options_getter().get(CONF_SOCIAL_DEFAULT_HASHTAGS, ""))
+            )
+            media_paths = [
+                str(media.get("path"))
+                for media in (entry.get("media") or [])
+                if isinstance(media, dict) and media.get("path")
+            ]
+            preprocess_result = await preprocess_social_media(options_getter(), media_paths)
+            post_result = await post_to_social(
+                options_getter(),
+                SocialPostRequest(
+                    text=base_text,
+                    media_paths=preprocess_result.transformed_paths,
+                    hashtags=hashtags,
+                    source_type="experience",
+                    source_id=experience_id,
+                ),
+            )
+            persistent_notification.async_create(
+                hass,
+                message=(
+                    f"Share Erlebnis ({post_result.provider_name}): {post_result.message}\n"
+                    f"Preprocess: {preprocess_result.message}"
+                ),
+                title="NextFirst Social Share",
+                notification_id="nextfirst_social_share_experience",
+            )
+        except Exception as err:
+            raise to_ha_error(err) from err
+
+    async def share_monthly_summary(call: ServiceCall) -> None:
+        try:
+            month = str(call.data.get("month") or utc_now_iso()[:7])
+            summary = build_monthly_summary(manager.list_all(), month)
+            custom_text = str(call.data.get("text") or "").strip()
+            post_text = custom_text or summary["summary_text"]
+            hashtags = _split_hashtags(
+                str(call.data.get("hashtags") or options_getter().get(CONF_SOCIAL_DEFAULT_HASHTAGS, ""))
+            )
+            post_result = await post_to_social(
+                options_getter(),
+                SocialPostRequest(
+                    text=post_text,
+                    media_paths=[],
+                    hashtags=hashtags,
+                    source_type="monthly_summary",
+                    source_id=month,
+                ),
+            )
+            persistent_notification.async_create(
+                hass,
+                message=(
+                    f"Share Monatsrückblick {month} ({post_result.provider_name}): "
+                    f"{post_result.message}\n\n"
+                    f"Vorschau: {summary['summary_text']}"
+                ),
+                title="NextFirst Monthly Share",
+                notification_id="nextfirst_social_share_monthly",
+            )
+        except Exception as err:
+            raise to_ha_error(err) from err
+
     services: list[tuple[str, Any, vol.Schema | None]] = [
         (
             SERVICE_CREATE_EXPERIENCE,
@@ -245,6 +340,28 @@ async def async_register_services(
             generate_ai_suggestions,
             vol.Schema({vol.Optional("count"): int}),
         ),
+        (
+            SERVICE_SHARE_EXPERIENCE,
+            share_experience,
+            vol.Schema(
+                {
+                    vol.Required("experience_id"): str,
+                    vol.Optional("text"): str,
+                    vol.Optional("hashtags"): str,
+                }
+            ),
+        ),
+        (
+            SERVICE_SHARE_MONTHLY_SUMMARY,
+            share_monthly_summary,
+            vol.Schema(
+                {
+                    vol.Optional("month"): str,
+                    vol.Optional("text"): str,
+                    vol.Optional("hashtags"): str,
+                }
+            ),
+        ),
     ]
 
     for name, handler, schema in services:
@@ -268,4 +385,18 @@ async def async_register_services(
             supports_response=SupportsResponse.ONLY,
         )
 
+    if not hass.services.has_service(DOMAIN, SERVICE_PREVIEW_MONTHLY_SUMMARY):
+        hass.services.async_register(
+            DOMAIN,
+            SERVICE_PREVIEW_MONTHLY_SUMMARY,
+            preview_monthly_summary,
+            schema=vol.Schema({vol.Optional("month"): str}),
+            supports_response=SupportsResponse.ONLY,
+        )
+
     _LOGGER.info("Registered NextFirst services")
+
+
+def _split_hashtags(raw: str) -> list[str]:
+    """Normalize comma-separated hashtag list for provider payloads."""
+    return [tag.strip() for tag in raw.split(",") if tag.strip()]

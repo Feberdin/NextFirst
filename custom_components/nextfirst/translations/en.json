@@ -35,7 +35,18 @@
           "preferred_categories": "Preferred categories (CSV)",
           "preferred_courage_levels": "Preferred courage levels (CSV)",
           "custom_interests": "Interests",
-          "exclusions": "Exclusions"
+          "exclusions": "Exclusions",
+          "social_enabled": "Enable social sharing",
+          "social_provider": "Social provider",
+          "social_auto_share_monthly": "Auto-share monthly recap",
+          "social_default_hashtags": "Default hashtags (CSV)",
+          "social_include_ai_text": "Use AI text for social posts",
+          "social_kids_privacy_mode": "Kids image privacy mode",
+          "social_image_preprocess_enabled": "Preprocess images before social posting",
+          "social_image_preprocess_prompt": "Image preprocessing prompt",
+          "monthly_summary_enabled": "Enable monthly summary",
+          "monthly_summary_day": "Summary day of month (1-28)",
+          "monthly_summary_hour": "Summary hour (0-23)"
         }
       }
     }

@@ -35,7 +35,18 @@
           "preferred_categories": "Bevorzugte Kategorien (CSV)",
           "preferred_courage_levels": "Bevorzugte Mut-Level (CSV)",
           "custom_interests": "Interessen",
-          "exclusions": "Ausschlüsse"
+          "exclusions": "Ausschlüsse",
+          "social_enabled": "Social Sharing aktivieren",
+          "social_provider": "Social Provider",
+          "social_auto_share_monthly": "Monatsrückblick automatisch teilen",
+          "social_default_hashtags": "Standard-Hashtags (CSV)",
+          "social_include_ai_text": "KI-Text für Social Posts verwenden",
+          "social_kids_privacy_mode": "Kinderbild-Schutzmodus",
+          "social_image_preprocess_enabled": "Bilder vor Social Posting vorverarbeiten",
+          "social_image_preprocess_prompt": "Bild-Preprocessing Prompt",
+          "monthly_summary_enabled": "Monatszusammenfassung aktivieren",
+          "monthly_summary_day": "Monatstag für Zusammenfassung (1-28)",
+          "monthly_summary_hour": "Stunde für Zusammenfassung (0-23)"
         }
       }
     }

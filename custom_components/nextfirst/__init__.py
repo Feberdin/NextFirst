@@ -18,10 +18,11 @@ Debugging:
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
+if TYPE_CHECKING:
+    from homeassistant.config_entries import ConfigEntry
+    from homeassistant.core import HomeAssistant
 
 from .const import (
     CONF_AI_API_KEY,
@@ -30,8 +31,6 @@ from .const import (
     DOMAIN,
     PLATFORMS,
 )
-from .manager import NextFirstManager
-from .storage import NextFirstStorage
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -56,12 +55,14 @@ def _merged_options(entry: ConfigEntry) -> dict[str, Any]:
     return options
 
 
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+async def async_setup_entry(hass: "HomeAssistant", entry: "ConfigEntry") -> bool:
     """Set up NextFirst from config entry."""
     # Lazy import keeps config-flow import path resilient across HA versions.
     from .api import async_register_http_api
+    from .manager import NextFirstManager
     from .panel import async_setup_panel
     from .services import async_register_services
+    from .storage import NextFirstStorage
 
     hass.data.setdefault(DOMAIN, {})
 
@@ -87,7 +88,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     return True
 
 
-async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+async def async_unload_entry(hass: "HomeAssistant", entry: "ConfigEntry") -> bool:
     """Unload one config entry and associated entities."""
     from .panel import async_unload_panel
 

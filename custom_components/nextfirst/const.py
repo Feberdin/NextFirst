@@ -37,6 +37,17 @@ CONF_PREFERRED_CATEGORIES = "preferred_categories"
 CONF_PREFERRED_COURAGE_LEVELS = "preferred_courage_levels"
 CONF_CUSTOM_INTERESTS = "custom_interests"
 CONF_EXCLUSIONS = "exclusions"
+CONF_SOCIAL_ENABLED = "social_enabled"
+CONF_SOCIAL_PROVIDER = "social_provider"
+CONF_SOCIAL_AUTO_SHARE_MONTHLY = "social_auto_share_monthly"
+CONF_SOCIAL_DEFAULT_HASHTAGS = "social_default_hashtags"
+CONF_SOCIAL_INCLUDE_AI_TEXT = "social_include_ai_text"
+CONF_SOCIAL_KIDS_PRIVACY_MODE = "social_kids_privacy_mode"
+CONF_SOCIAL_IMAGE_PREPROCESS_ENABLED = "social_image_preprocess_enabled"
+CONF_SOCIAL_IMAGE_PREPROCESS_PROMPT = "social_image_preprocess_prompt"
+CONF_MONTHLY_SUMMARY_ENABLED = "monthly_summary_enabled"
+CONF_MONTHLY_SUMMARY_DAY = "monthly_summary_day"
+CONF_MONTHLY_SUMMARY_HOUR = "monthly_summary_hour"
 
 DEFAULT_OPTIONS = {
     CONF_AI_ENABLED: False,
@@ -53,6 +64,17 @@ DEFAULT_OPTIONS = {
     CONF_PREFERRED_COURAGE_LEVELS: [],
     CONF_CUSTOM_INTERESTS: "",
     CONF_EXCLUSIONS: "",
+    CONF_SOCIAL_ENABLED: False,
+    CONF_SOCIAL_PROVIDER: "none",
+    CONF_SOCIAL_AUTO_SHARE_MONTHLY: False,
+    CONF_SOCIAL_DEFAULT_HASHTAGS: "",
+    CONF_SOCIAL_INCLUDE_AI_TEXT: False,
+    CONF_SOCIAL_KIDS_PRIVACY_MODE: "none",
+    CONF_SOCIAL_IMAGE_PREPROCESS_ENABLED: False,
+    CONF_SOCIAL_IMAGE_PREPROCESS_PROMPT: "Mache alle Kinder unkenntlich.",
+    CONF_MONTHLY_SUMMARY_ENABLED: False,
+    CONF_MONTHLY_SUMMARY_DAY: 1,
+    CONF_MONTHLY_SUMMARY_HOUR: 9,
 }
 
 SIGNAL_DATA_CHANGED = f"{DOMAIN}_data_changed"
@@ -68,3 +90,6 @@ SERVICE_ADD_NOTE = "add_note"
 SERVICE_GENERATE_AI_SUGGESTIONS = "generate_ai_suggestions"
 SERVICE_GET_STATISTICS = "get_statistics"
 SERVICE_GET_ALBUM = "get_album"
+SERVICE_PREVIEW_MONTHLY_SUMMARY = "preview_monthly_summary"
+SERVICE_SHARE_EXPERIENCE = "share_experience"
+SERVICE_SHARE_MONTHLY_SUMMARY = "share_monthly_summary"

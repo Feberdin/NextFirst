@@ -353,3 +353,24 @@ Mindestsatz für MVP:
 3. Medienreferenzen und Album-Grundansicht
 4. Options Flow + AI Interface + OpenAI Adapter
 5. Fehlertexte, Logging-Härtung, Dokumentation
+
+## 16) Erweiterungsvorbereitung: Social & Monatsalbum
+
+Bereits vorbereitet:
+
+- Neue Optionen für Social Sharing, Monatszusammenfassung und Bild-Preprocessing
+- Services:
+  - `nextfirst.preview_monthly_summary`
+  - `nextfirst.share_experience`
+  - `nextfirst.share_monthly_summary`
+- Module:
+  - `social/` (provider-neutrale Posting-Schnittstellen)
+  - `media_processing/` (privacy-sichere Bild-Transform-Pipeline)
+  - `monthly_summary.py` (lokale Recap-Generierung)
+
+Datenschutz-Guardrails:
+
+- Social Sharing bleibt standardmäßig deaktiviert (Opt-in).
+- Bild-Preprocessing bleibt standardmäßig deaktiviert (Opt-in).
+- Kinderbild-Schutzmodus konfigurierbar (`none`, `blur_kids`, `ai_stylize`).
+- Provider-Adapter müssen vor Aktivierung klare Datenschutzhinweise anzeigen.

@@ -36,8 +36,19 @@ from .const import (
     CONF_FAMILY_FRIENDLY_ONLY,
     CONF_GOOD_WEATHER_ONLY,
     CONF_MAX_TRAVEL_MINUTES,
+    CONF_MONTHLY_SUMMARY_DAY,
+    CONF_MONTHLY_SUMMARY_ENABLED,
+    CONF_MONTHLY_SUMMARY_HOUR,
     CONF_PREFERRED_CATEGORIES,
     CONF_PREFERRED_COURAGE_LEVELS,
+    CONF_SOCIAL_AUTO_SHARE_MONTHLY,
+    CONF_SOCIAL_DEFAULT_HASHTAGS,
+    CONF_SOCIAL_ENABLED,
+    CONF_SOCIAL_IMAGE_PREPROCESS_ENABLED,
+    CONF_SOCIAL_IMAGE_PREPROCESS_PROMPT,
+    CONF_SOCIAL_INCLUDE_AI_TEXT,
+    CONF_SOCIAL_KIDS_PRIVACY_MODE,
+    CONF_SOCIAL_PROVIDER,
     DEFAULT_OPTIONS,
     DOMAIN,
 )
@@ -138,6 +149,44 @@ class NextFirstOptionsFlow(config_entries.OptionsFlow):
                 ): str,
                 vol.Optional(CONF_CUSTOM_INTERESTS, default=current[CONF_CUSTOM_INTERESTS]): str,
                 vol.Optional(CONF_EXCLUSIONS, default=current[CONF_EXCLUSIONS]): str,
+                vol.Optional(CONF_SOCIAL_ENABLED, default=current[CONF_SOCIAL_ENABLED]): bool,
+                vol.Optional(CONF_SOCIAL_PROVIDER, default=current[CONF_SOCIAL_PROVIDER]): str,
+                vol.Optional(
+                    CONF_SOCIAL_AUTO_SHARE_MONTHLY,
+                    default=current[CONF_SOCIAL_AUTO_SHARE_MONTHLY],
+                ): bool,
+                vol.Optional(
+                    CONF_SOCIAL_DEFAULT_HASHTAGS,
+                    default=current[CONF_SOCIAL_DEFAULT_HASHTAGS],
+                ): str,
+                vol.Optional(
+                    CONF_SOCIAL_INCLUDE_AI_TEXT,
+                    default=current[CONF_SOCIAL_INCLUDE_AI_TEXT],
+                ): bool,
+                vol.Optional(
+                    CONF_SOCIAL_KIDS_PRIVACY_MODE,
+                    default=current[CONF_SOCIAL_KIDS_PRIVACY_MODE],
+                ): vol.In(["none", "blur_kids", "ai_stylize"]),
+                vol.Optional(
+                    CONF_SOCIAL_IMAGE_PREPROCESS_ENABLED,
+                    default=current[CONF_SOCIAL_IMAGE_PREPROCESS_ENABLED],
+                ): bool,
+                vol.Optional(
+                    CONF_SOCIAL_IMAGE_PREPROCESS_PROMPT,
+                    default=current[CONF_SOCIAL_IMAGE_PREPROCESS_PROMPT],
+                ): str,
+                vol.Optional(
+                    CONF_MONTHLY_SUMMARY_ENABLED,
+                    default=current[CONF_MONTHLY_SUMMARY_ENABLED],
+                ): bool,
+                vol.Optional(
+                    CONF_MONTHLY_SUMMARY_DAY,
+                    default=current[CONF_MONTHLY_SUMMARY_DAY],
+                ): vol.All(int, vol.Range(min=1, max=28)),
+                vol.Optional(
+                    CONF_MONTHLY_SUMMARY_HOUR,
+                    default=current[CONF_MONTHLY_SUMMARY_HOUR],
+                ): vol.All(int, vol.Range(min=0, max=23)),
             }
         )
 

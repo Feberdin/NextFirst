@@ -93,3 +93,49 @@ get_statistics:
 get_album:
   name: Album abrufen
   description: Gibt die letzten erlebten Einträge als Albumliste zurück.
+
+preview_monthly_summary:
+  name: Monatszusammenfassung Vorschau
+  description: Erzeugt eine Monatszusammenfassung als Textvorschau.
+  fields:
+    month:
+      required: false
+      description: Monat im Format YYYY-MM (optional, Standard ist aktueller Monat).
+      selector:
+        text:
+
+share_experience:
+  name: Erlebnis teilen
+  description: Teilt ein Erlebnis über den konfigurierten Social-Provider (Roadmap-Basis).
+  fields:
+    experience_id:
+      required: true
+      selector:
+        text:
+    text:
+      required: false
+      selector:
+        text:
+    hashtags:
+      required: false
+      description: Kommagetrennte Liste.
+      selector:
+        text:
+
+share_monthly_summary:
+  name: Monatszusammenfassung teilen
+  description: Teilt die Monatszusammenfassung über den konfigurierten Social-Provider (Roadmap-Basis).
+  fields:
+    month:
+      required: false
+      selector:
+        text:
+    text:
+      required: false
+      selector:
+        text:
+    hashtags:
+      required: false
+      description: Kommagetrennte Liste.
+      selector:
+        text:
