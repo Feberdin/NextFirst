@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.0 - 2026-03-08
+
+- Eigenes Sidebar-Panel `NextFirst` unter `/nextfirst` implementiert
+- Neue Panel-Ansichten: `Offen`, `Übersprungen`, `Erlebt`, `Album`
+- Neue HTTP-API-Endpunkte unter `/api/nextfirst/*` für UI-Interaktionen
+- UI-Aktionen: Erstellen, Bearbeiten, Überspringen, Als erlebt markieren, Reaktivieren, Archivieren, Löschen, Notiz/Bild hinzufügen
+- KI-Vorschläge direkt aus dem Panel auslösbar
+- Integration-Manifest auf `0.2.0` erhöht
+
 ## 0.1.2 - 2026-03-08
 
 - Config-Flow stabilisiert (lazy service import, kompatiblere Service-Typisierung)

@@ -59,6 +59,8 @@ def _merged_options(entry: ConfigEntry) -> dict[str, Any]:
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up NextFirst from config entry."""
     # Lazy import keeps config-flow import path resilient across HA versions.
+    from .api import async_register_http_api
+    from .panel import async_setup_panel
     from .services import async_register_services
 
     hass.data.setdefault(DOMAIN, {})
@@ -77,6 +79,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         manager,
         options_getter=lambda: _merged_options(entry),
     )
+    await async_register_http_api(hass)
+    await async_setup_panel(hass)
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     _LOGGER.info("NextFirst setup complete for entry_id=%s", entry.entry_id)
@@ -85,9 +89,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload one config entry and associated entities."""
+    from .panel import async_unload_panel
+
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if not unload_ok:
         return False
+
+    # Single-instance integration: remove panel when unloading the entry.
+    await async_unload_panel(hass)
 
     hass.data.get(DOMAIN, {}).pop(entry.entry_id, None)
     if not hass.data.get(DOMAIN):

@@ -168,6 +168,14 @@ class NextFirstManager:
             await self._persist_and_notify()
             return exp.to_dict()
 
+    async def async_archive_experience(self, experience_id: str) -> dict[str, Any]:
+        """Archive one experienced entry for later rediscovery."""
+        async with self._lock:
+            exp = self._require(experience_id)
+            exp.mark_status(ExperienceStatus.ARCHIVED)
+            await self._persist_and_notify()
+            return exp.to_dict()
+
     async def async_attach_media(
         self,
         experience_id: str,

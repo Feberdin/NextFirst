@@ -8,7 +8,7 @@ NextFirst ist eine Home-Assistant-Integration für neue Erlebnisse: planen, umse
 - Erlebnisse nach Abschluss mit Bildern/Notizen ergänzen
 - Optionale KI-Vorschläge erzeugen (lokal nutzbar auch ohne KI)
 
-## Features der v0.1.0 (erste Version)
+## Features der v0.2.0
 
 - Config Flow + Options Flow
 - CRUD und Statuswechsel via Home-Assistant-Services
@@ -17,7 +17,9 @@ NextFirst ist eine Home-Assistant-Integration für neue Erlebnisse: planen, umse
 - JSON-Storage mit Schema-Version und migrationsfähiger Struktur
 - Defensives Fehlerhandling mit klaren Meldungen
 - Provider-neutrale KI-Schicht (v1 Provider: OpenAI)
-- Album-Grundansicht über Sensor-Attribute + Service-Response
+- Eigenes Sidebar-Panel mit Ansichten `Offen`, `Übersprungen`, `Erlebt`, `Album`
+- Direkte UI-Aktionen: Bearbeiten, Überspringen, Als erlebt markieren, Reaktivieren, Löschen
+- Panel-Backend über authentifizierte HTTP-API unter `/api/nextfirst/*`
 
 ## Projektstruktur
 
@@ -31,12 +33,16 @@ NextFirst/
 │  ├─ domain.py
 │  ├─ errors.py
 │  ├─ manager.py
+│  ├─ api.py
+│  ├─ panel.py
 │  ├─ services.py
 │  ├─ services.yaml
 │  ├─ sensor.py
 │  ├─ button.py
 │  ├─ storage.py
 │  ├─ strings.json
+│  ├─ frontend/
+│  │  └─ nextfirst-panel.js
 │  ├─ translations/
 │  │  ├─ de.json
 │  │  └─ en.json
@@ -112,12 +118,14 @@ Optionen (Auszug) im Options Flow:
 
 ## UI in Home Assistant
 
-- v0.1.x liefert aktuell Entitäten + Services (keinen eigenen Sidebar-Panel-Tab).
-- Empfohlener Weg:
-  1. Neue Dashboard-Ansicht `NextFirst` anlegen.
-  2. Sensoren `sensor.nextfirst_*` als Karten hinzufügen.
-  3. `button.nextfirst_generate_suggestions` als Aktion hinzufügen.
-  4. Services (`nextfirst.*`) über Script-/Button-Karten nutzbar machen.
+- Ab v0.2.0 erscheint `NextFirst` als eigener Eintrag in der linken Seitenleiste.
+- Das Panel enthält die vier Hauptansichten:
+  1. `Offen`
+  2. `Übersprungen`
+  3. `Erlebt`
+  4. `Album`
+- Aktionen sind direkt in den Eintragskarten verfügbar.
+- Entitäten und Services bleiben zusätzlich für Automationen/Dashboards nutzbar.
 
 ## Troubleshooting
 
