@@ -1,0 +1,41 @@
+{
+  "title": "NextFirst",
+  "config": {
+    "step": {
+      "user": {
+        "title": "NextFirst",
+        "description": "Set up NextFirst as your experience and memory integration.",
+        "data": {
+          "title": "Display name"
+        }
+      }
+    },
+    "abort": {
+      "single_instance_allowed": "Only one NextFirst instance is allowed."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "NextFirst options",
+        "description": "AI is optional. Without AI the integration remains fully local-first.",
+        "data": {
+          "ai_enabled": "Enable AI",
+          "ai_provider": "AI provider",
+          "ai_model": "Model",
+          "ai_suggestion_count": "Suggestion count",
+          "ai_temperature": "Creativity",
+          "ai_max_tokens": "Max tokens",
+          "ai_api_key": "API key",
+          "max_travel_minutes": "Max travel time (minutes)",
+          "family_friendly_only": "Family friendly only",
+          "good_weather_only": "Good weather only",
+          "preferred_categories": "Preferred categories (CSV)",
+          "preferred_courage_levels": "Preferred courage levels (CSV)",
+          "custom_interests": "Interests",
+          "exclusions": "Exclusions"
+        }
+      }
+    }
+  }
+}

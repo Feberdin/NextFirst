@@ -1,0 +1,95 @@
+create_experience:
+  name: Erlebnis anlegen
+  description: Legt einen neuen offenen NextFirst-Eintrag an.
+  fields:
+    title:
+      required: true
+      selector:
+        text:
+    description:
+      required: false
+      selector:
+        text:
+
+update_experience:
+  name: Erlebnis bearbeiten
+  description: Aktualisiert Felder eines bestehenden Eintrags.
+  fields:
+    experience_id:
+      required: true
+      selector:
+        text:
+
+delete_experience:
+  name: Erlebnis löschen
+  description: Löscht einen Eintrag anhand seiner ID.
+  fields:
+    experience_id:
+      required: true
+      selector:
+        text:
+
+mark_skipped:
+  name: Als übersprungen markieren
+  description: Setzt den Status auf übersprungen.
+  fields:
+    experience_id:
+      required: true
+      selector:
+        text:
+
+reactivate_experience:
+  name: Reaktivieren
+  description: Setzt einen übersprungenen/archivierten Eintrag zurück auf offen.
+  fields:
+    experience_id:
+      required: true
+      selector:
+        text:
+
+mark_experienced:
+  name: Als erlebt markieren
+  description: Setzt den Status auf erlebt und ergänzt optional Abschlussdaten.
+  fields:
+    experience_id:
+      required: true
+      selector:
+        text:
+
+attach_media:
+  name: Bildreferenz anhängen
+  description: Verknüpft einen Medienpfad mit einem Erlebnis.
+  fields:
+    experience_id:
+      required: true
+      selector:
+        text:
+    path:
+      required: true
+      selector:
+        text:
+
+add_note:
+  name: Notiz hinzufügen
+  description: Setzt oder ersetzt die Notiz eines Eintrags.
+  fields:
+    experience_id:
+      required: true
+      selector:
+        text:
+    note:
+      required: true
+      selector:
+        text:
+
+generate_ai_suggestions:
+  name: KI-Vorschläge erzeugen
+  description: Erzeugt neue Vorschläge via konfiguriertem KI-Provider.
+
+get_statistics:
+  name: Statistiken abrufen
+  description: Gibt NextFirst-Metriken als Service-Response zurück.
+
+get_album:
+  name: Album abrufen
+  description: Gibt die letzten erlebten Einträge als Albumliste zurück.

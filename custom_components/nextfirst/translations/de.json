@@ -1,0 +1,41 @@
+{
+  "title": "NextFirst",
+  "config": {
+    "step": {
+      "user": {
+        "title": "NextFirst",
+        "description": "Richtet NextFirst als Erlebnis- und Erinnerungsintegration ein.",
+        "data": {
+          "title": "Anzeigename"
+        }
+      }
+    },
+    "abort": {
+      "single_instance_allowed": "Nur eine NextFirst-Instanz ist erlaubt."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "NextFirst Optionen",
+        "description": "KI-Nutzung ist optional. Ohne KI bleibt die Integration vollständig lokal nutzbar.",
+        "data": {
+          "ai_enabled": "KI aktivieren",
+          "ai_provider": "KI-Provider",
+          "ai_model": "Modell",
+          "ai_suggestion_count": "Anzahl Vorschläge",
+          "ai_temperature": "Kreativität",
+          "ai_max_tokens": "Max. Tokens",
+          "ai_api_key": "API-Schlüssel",
+          "max_travel_minutes": "Maximale Fahrzeit (Minuten)",
+          "family_friendly_only": "Nur familienfreundlich",
+          "good_weather_only": "Nur bei gutem Wetter",
+          "preferred_categories": "Bevorzugte Kategorien (CSV)",
+          "preferred_courage_levels": "Bevorzugte Mut-Level (CSV)",
+          "custom_interests": "Interessen",
+          "exclusions": "Ausschlüsse"
+        }
+      }
+    }
+  }
+}

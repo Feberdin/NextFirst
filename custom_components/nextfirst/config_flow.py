@@ -1,0 +1,140 @@
+"""Config flow and options flow for NextFirst.
+
+Purpose:
+- Provide setup UX in Home Assistant and editable runtime options.
+
+Input/Output:
+- Input: user form entries from config/options UI.
+- Output: ConfigEntry and updated options dict.
+
+Invariants:
+- Single instance by default.
+- Safe defaults keep integration usable without AI.
+
+Debugging:
+- If options are not applied, inspect entry.options and merged defaults in __init__.py.
+"""
+
+from __future__ import annotations
+
+from typing import Any
+
+import voluptuous as vol
+from homeassistant import config_entries
+from homeassistant.core import callback
+
+from .const import (
+    CONF_AI_API_KEY,
+    CONF_AI_ENABLED,
+    CONF_AI_MAX_TOKENS,
+    CONF_AI_MODEL,
+    CONF_AI_PROVIDER,
+    CONF_AI_SUGGESTION_COUNT,
+    CONF_AI_TEMPERATURE,
+    CONF_CUSTOM_INTERESTS,
+    CONF_EXCLUSIONS,
+    CONF_FAMILY_FRIENDLY_ONLY,
+    CONF_GOOD_WEATHER_ONLY,
+    CONF_MAX_TRAVEL_MINUTES,
+    CONF_PREFERRED_CATEGORIES,
+    CONF_PREFERRED_COURAGE_LEVELS,
+    DEFAULT_OPTIONS,
+    DOMAIN,
+)
+
+
+class NextFirstConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
+    """Handle setup flow for NextFirst."""
+
+    VERSION = 1
+
+    async def async_step_user(self, user_input: dict[str, Any] | None = None):
+        """Create a single integration instance."""
+        if self._async_current_entries():
+            return self.async_abort(reason="single_instance_allowed")
+
+        if user_input is not None:
+            title = user_input.get("title") or "NextFirst"
+            return self.async_create_entry(title=title, data={})
+
+        schema = vol.Schema({vol.Optional("title", default="NextFirst"): str})
+        return self.async_show_form(step_id="user", data_schema=schema)
+
+    @staticmethod
+    @callback
+    def async_get_options_flow(config_entry):
+        return NextFirstOptionsFlow(config_entry)
+
+
+class NextFirstOptionsFlow(config_entries.OptionsFlow):
+    """Handle options flow for NextFirst runtime settings."""
+
+    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
+        self.config_entry = config_entry
+
+    async def async_step_init(self, user_input: dict[str, Any] | None = None):
+        """Edit integration options with safe defaults."""
+        if user_input is not None:
+            return self.async_create_entry(title="", data=user_input)
+
+        current = dict(DEFAULT_OPTIONS)
+        current.update(self.config_entry.options)
+
+        schema = vol.Schema(
+            {
+                vol.Optional(CONF_AI_ENABLED, default=current[CONF_AI_ENABLED]): bool,
+                vol.Optional(CONF_AI_PROVIDER, default=current[CONF_AI_PROVIDER]): str,
+                vol.Optional(CONF_AI_MODEL, default=current[CONF_AI_MODEL]): str,
+                vol.Optional(
+                    CONF_AI_SUGGESTION_COUNT,
+                    default=current[CONF_AI_SUGGESTION_COUNT],
+                ): vol.All(int, vol.Range(min=1, max=20)),
+                vol.Optional(CONF_AI_TEMPERATURE, default=current[CONF_AI_TEMPERATURE]): vol.All(
+                    float, vol.Range(min=0.0, max=2.0)
+                ),
+                vol.Optional(CONF_AI_MAX_TOKENS, default=current[CONF_AI_MAX_TOKENS]): vol.All(
+                    int, vol.Range(min=100, max=4000)
+                ),
+                vol.Optional(CONF_AI_API_KEY, default=current[CONF_AI_API_KEY]): str,
+                vol.Optional(
+                    CONF_MAX_TRAVEL_MINUTES,
+                    default=current[CONF_MAX_TRAVEL_MINUTES],
+                ): vol.All(int, vol.Range(min=0, max=300)),
+                vol.Optional(
+                    CONF_FAMILY_FRIENDLY_ONLY,
+                    default=current[CONF_FAMILY_FRIENDLY_ONLY],
+                ): bool,
+                vol.Optional(
+                    CONF_GOOD_WEATHER_ONLY,
+                    default=current[CONF_GOOD_WEATHER_ONLY],
+                ): bool,
+                vol.Optional(
+                    CONF_PREFERRED_CATEGORIES,
+                    default=",".join(current[CONF_PREFERRED_CATEGORIES]),
+                ): str,
+                vol.Optional(
+                    CONF_PREFERRED_COURAGE_LEVELS,
+                    default=",".join(current[CONF_PREFERRED_COURAGE_LEVELS]),
+                ): str,
+                vol.Optional(CONF_CUSTOM_INTERESTS, default=current[CONF_CUSTOM_INTERESTS]): str,
+                vol.Optional(CONF_EXCLUSIONS, default=current[CONF_EXCLUSIONS]): str,
+            }
+        )
+
+        return self.async_show_form(step_id="init", data_schema=schema)
+
+    async def async_create_entry(self, title: str, data: dict[str, Any]):  # type: ignore[override]
+        """Normalize comma-separated string fields before storing options."""
+        normalized = dict(data)
+        normalized[CONF_PREFERRED_CATEGORIES] = _split_csv(
+            str(data.get(CONF_PREFERRED_CATEGORIES, ""))
+        )
+        normalized[CONF_PREFERRED_COURAGE_LEVELS] = _split_csv(
+            str(data.get(CONF_PREFERRED_COURAGE_LEVELS, ""))
+        )
+        return await super().async_create_entry(title=title, data=normalized)
+
+
+def _split_csv(value: str) -> list[str]:
+    """Convert comma-separated text to clean list values."""
+    return [item.strip() for item in value.split(",") if item.strip()]
