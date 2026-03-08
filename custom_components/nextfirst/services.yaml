@@ -10,6 +10,13 @@ create_experience:
       required: false
       selector:
         text:
+    budget_per_person_eur:
+      required: false
+      selector:
+        number:
+          min: 0
+          max: 500
+          mode: box
 
 update_experience:
   name: Erlebnis bearbeiten
@@ -19,6 +26,13 @@ update_experience:
       required: true
       selector:
         text:
+    budget_per_person_eur:
+      required: false
+      selector:
+        number:
+          min: 0
+          max: 500
+          mode: box
 
 delete_experience:
   name: Erlebnis löschen

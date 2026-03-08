@@ -147,6 +147,7 @@ class Experience:
     courage_level: str | None = None
     duration_minutes: int | None = None
     cost_level: str | None = None
+    budget_per_person_eur: int | None = None
     travel_minutes: int | None = None
     age_group: str | None = None
     weather_hint: str | None = None
@@ -187,6 +188,7 @@ class Experience:
             courage_level=kwargs.get("courage_level"),
             duration_minutes=kwargs.get("duration_minutes"),
             cost_level=kwargs.get("cost_level"),
+            budget_per_person_eur=kwargs.get("budget_per_person_eur"),
             travel_minutes=kwargs.get("travel_minutes"),
             age_group=kwargs.get("age_group"),
             weather_hint=kwargs.get("weather_hint"),
@@ -230,6 +232,7 @@ class Experience:
             "courage_level": self.courage_level,
             "duration_minutes": self.duration_minutes,
             "cost_level": self.cost_level,
+            "budget_per_person_eur": self.budget_per_person_eur,
             "travel_minutes": self.travel_minutes,
             "age_group": self.age_group,
             "weather_hint": self.weather_hint,
@@ -266,6 +269,7 @@ class Experience:
             "courage_level",
             "duration_minutes",
             "cost_level",
+            "budget_per_person_eur",
             "travel_minutes",
             "age_group",
             "weather_hint",
@@ -295,6 +299,7 @@ class Experience:
             courage_level=raw.get("courage_level"),
             duration_minutes=raw.get("duration_minutes"),
             cost_level=raw.get("cost_level"),
+            budget_per_person_eur=raw.get("budget_per_person_eur"),
             travel_minutes=raw.get("travel_minutes"),
             age_group=raw.get("age_group"),
             weather_hint=raw.get("weather_hint"),

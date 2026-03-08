@@ -63,9 +63,12 @@ class OpenAISuggestionProvider:
             "You generate family-friendly and practical first-time activity ideas. "
             "Return strict JSON with exactly the requested number of ideas. "
             "Use either a JSON array or object key 'suggestions'. "
-            "Each item must include title and may include "
+            "Each item must include title and a concrete location name/address. "
+            "Avoid generic ideas without place names. "
+            "Each item may include "
             "description, category, courage_level, duration_minutes, cost_level, "
-            "travel_minutes, family_friendly, indoor_outdoor, weather_hint, notes."
+            "travel_minutes, family_friendly, indoor_outdoor, weather_hint, notes, "
+            "location, budget_per_person_eur."
         )
 
         user_prompt = {
@@ -74,6 +77,7 @@ class OpenAISuggestionProvider:
             "travel_origin": context.travel_origin,
             "family_friendly_only": context.family_friendly_only,
             "good_weather_only": context.good_weather_only,
+            "budget_per_person_eur": context.budget_per_person_eur,
             "preferred_categories": context.preferred_categories,
             "preferred_courage_levels": context.preferred_courage_levels,
             "custom_interests": context.custom_interests,
@@ -147,6 +151,13 @@ class OpenAISuggestionProvider:
                     indoor_outdoor=item.get("indoor_outdoor"),
                     weather_hint=item.get("weather_hint"),
                     notes=item.get("notes"),
+                    location=(
+                        item.get("location")
+                        or item.get("place")
+                        or item.get("address")
+                        or item.get("venue")
+                    ),
+                    budget_per_person_eur=_to_int(item.get("budget_per_person_eur")),
                 )
             )
 
@@ -198,3 +209,13 @@ def _normalize_courage_level(value: Any) -> str | None:
     if raw in {"leicht", "mittel", "mutig", "verrueckt", "verrückt"}:
         return "verrueckt" if raw == "verrückt" else raw
     return raw or None
+
+
+def _to_int(value: Any) -> int | None:
+    """Convert loosely typed numeric model output to int."""
+    if value is None:
+        return None
+    try:
+        return int(float(value))
+    except (TypeError, ValueError):
+        return None

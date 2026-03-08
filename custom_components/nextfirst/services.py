@@ -89,6 +89,7 @@ async def async_register_services(
                 courage_level=call.data.get("courage_level"),
                 duration_minutes=call.data.get("duration_minutes"),
                 travel_minutes=call.data.get("travel_minutes"),
+                budget_per_person_eur=call.data.get("budget_per_person_eur"),
                 notes=call.data.get("notes"),
             )
         except Exception as err:
@@ -286,6 +287,7 @@ async def async_register_services(
                     vol.Optional("courage_level"): str,
                     vol.Optional("duration_minutes"): int,
                     vol.Optional("travel_minutes"): int,
+                    vol.Optional("budget_per_person_eur"): int,
                     vol.Optional("notes"): str,
                 }
             ),
@@ -302,6 +304,7 @@ async def async_register_services(
                     vol.Optional("courage_level"): str,
                     vol.Optional("duration_minutes"): int,
                     vol.Optional("travel_minutes"): int,
+                    vol.Optional("budget_per_person_eur"): int,
                     vol.Optional("notes"): str,
                     vol.Optional("rating"): int,
                     vol.Optional("would_repeat"): bool,

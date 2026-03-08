@@ -133,6 +133,7 @@ class NextFirstExperiencesView(NextFirstBaseView):
                 category=body.get("category"),
                 courage_level=body.get("courage_level"),
                 travel_minutes=body.get("travel_minutes"),
+                budget_per_person_eur=body.get("budget_per_person_eur"),
                 duration_minutes=body.get("duration_minutes"),
                 notes=body.get("notes"),
             )

@@ -27,6 +27,7 @@ CONF_AI_ENABLED = "ai_enabled"
 CONF_AI_PROVIDER = "ai_provider"
 CONF_AI_MODEL = "ai_model"
 CONF_AI_SUGGESTION_COUNT = "ai_suggestion_count"
+CONF_BUDGET_PER_PERSON_EUR = "budget_per_person_eur"
 CONF_AI_TEMPERATURE = "ai_temperature"
 CONF_AI_MAX_TOKENS = "ai_max_tokens"
 CONF_AI_API_KEY = "ai_api_key"
@@ -60,7 +61,8 @@ DEFAULT_OPTIONS = {
     CONF_AI_ENABLED: False,
     CONF_AI_PROVIDER: "openai",
     CONF_AI_MODEL: "gpt-4.1-mini",
-    CONF_AI_SUGGESTION_COUNT: 5,
+    CONF_AI_SUGGESTION_COUNT: 2,
+    CONF_BUDGET_PER_PERSON_EUR: 50,
     CONF_AI_TEMPERATURE: 0.7,
     CONF_AI_MAX_TOKENS: 600,
     CONF_AI_API_KEY: "",

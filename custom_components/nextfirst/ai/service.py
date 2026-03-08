@@ -30,6 +30,7 @@ from ..const import (
     CONF_AI_PROVIDER,
     CONF_AI_SUGGESTION_COUNT,
     CONF_AI_TEMPERATURE,
+    CONF_BUDGET_PER_PERSON_EUR,
     CONF_CUSTOM_INTERESTS,
     CONF_EXCLUSIONS,
     CONF_FAMILY_FRIENDLY_ONLY,
@@ -74,6 +75,7 @@ async def generate_and_store_suggestions(
         max_travel_minutes=int(options.get(CONF_MAX_TRAVEL_MINUTES, 60)),
         family_friendly_only=bool(options.get(CONF_FAMILY_FRIENDLY_ONLY, False)),
         good_weather_only=bool(options.get(CONF_GOOD_WEATHER_ONLY, False)),
+        budget_per_person_eur=int(options.get(CONF_BUDGET_PER_PERSON_EUR, 0) or 0),
         travel_origin=str(options.get(CONF_TRAVEL_ORIGIN, "zone.home") or "zone.home"),
         preferred_categories=list(options.get(CONF_PREFERRED_CATEGORIES, [])),
         preferred_courage_levels=list(options.get(CONF_PREFERRED_COURAGE_LEVELS, [])),
@@ -102,6 +104,7 @@ async def generate_and_store_suggestions(
                 max_travel_minutes=context.max_travel_minutes,
                 family_friendly_only=context.family_friendly_only,
                 good_weather_only=context.good_weather_only,
+                budget_per_person_eur=context.budget_per_person_eur,
                 travel_origin=context.travel_origin,
                 preferred_categories=context.preferred_categories,
                 preferred_courage_levels=context.preferred_courage_levels,
@@ -112,6 +115,8 @@ async def generate_and_store_suggestions(
         for draft in batch:
             key = draft.title.strip().lower()
             if not key or key in seen_titles:
+                continue
+            if not str(draft.location or "").strip():
                 continue
             seen_titles.add(key)
             drafts.append(draft)
@@ -134,6 +139,10 @@ async def generate_and_store_suggestions(
                 indoor_outdoor=draft.indoor_outdoor,
                 weather_hint=draft.weather_hint,
                 notes=draft.notes,
+                location=draft.location,
+                extra={
+                    "estimated_budget_per_person_eur": draft.budget_per_person_eur,
+                },
             )
         )
 

@@ -26,6 +26,7 @@
           "ai_provider": "KI-Provider (unterstützt: openai)",
           "ai_model": "KI-Modell für Vorschläge (z. B. gpt-4.1-mini)",
           "ai_suggestion_count": "Anzahl Vorschläge",
+          "budget_per_person_eur": "Budget pro Person (EUR)",
           "ai_temperature": "Kreativität",
           "ai_max_tokens": "Max. Tokens",
           "ai_api_key": "API-Schlüssel",

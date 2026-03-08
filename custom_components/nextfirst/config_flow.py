@@ -31,6 +31,7 @@ from .const import (
     CONF_AI_PROVIDER,
     CONF_AI_SUGGESTION_COUNT,
     CONF_AI_TEMPERATURE,
+    CONF_BUDGET_PER_PERSON_EUR,
     CONF_CUSTOM_INTERESTS,
     CONF_DEBUG_ENABLED,
     CONF_EXCLUSIONS,
@@ -123,6 +124,10 @@ class NextFirstOptionsFlow(config_entries.OptionsFlow):
                     CONF_AI_SUGGESTION_COUNT,
                     default=current[CONF_AI_SUGGESTION_COUNT],
                 ): vol.All(int, vol.Range(min=1, max=20)),
+                vol.Optional(
+                    CONF_BUDGET_PER_PERSON_EUR,
+                    default=current[CONF_BUDGET_PER_PERSON_EUR],
+                ): vol.All(int, vol.Range(min=0, max=500)),
                 vol.Optional(CONF_AI_TEMPERATURE, default=current[CONF_AI_TEMPERATURE]): vol.All(
                     float, vol.Range(min=0.0, max=2.0)
                 ),

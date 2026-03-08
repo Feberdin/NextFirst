@@ -67,6 +67,18 @@ class NextFirstPanel extends HTMLElement {
       .replaceAll('"', "&quot;");
   }
 
+  _formatError(err) {
+    if (!err) return "Unbekannter Fehler";
+    if (typeof err === "string") return err;
+    if (err?.message && typeof err.message === "string") return err.message;
+    if (err?.error && typeof err.error === "string") return err.error;
+    try {
+      return JSON.stringify(err);
+    } catch (jsonErr) {
+      return String(err);
+    }
+  }
+
   _byStatus(status) {
     return this._items.filter((i) => i.status === status);
   }
@@ -91,7 +103,7 @@ class NextFirstPanel extends HTMLElement {
       await this._api("post", "nextfirst/experiences", { title: title.trim() });
       await this._load();
     } catch (err) {
-      this._error = err?.message || String(err);
+      this._error = this._formatError(err);
       this._render();
     }
   }
@@ -108,7 +120,7 @@ class NextFirstPanel extends HTMLElement {
       });
       await this._load();
     } catch (err) {
-      this._error = err?.message || String(err);
+      this._error = this._formatError(err);
       this._render();
     }
   }
@@ -119,7 +131,7 @@ class NextFirstPanel extends HTMLElement {
       await this._api("delete", `nextfirst/experiences/${id}`);
       await this._load();
     } catch (err) {
-      this._error = err?.message || String(err);
+      this._error = this._formatError(err);
       this._render();
     }
   }
@@ -129,7 +141,7 @@ class NextFirstPanel extends HTMLElement {
       await this._api("post", `nextfirst/experiences/${id}/${action}`, body);
       await this._load();
     } catch (err) {
-      this._error = err?.message || String(err);
+      this._error = this._formatError(err);
       this._render();
     }
   }
@@ -176,7 +188,7 @@ class NextFirstPanel extends HTMLElement {
       if (!res?.ok) throw new Error(res?.error || "Upload fehlgeschlagen.");
       await this._load();
     } catch (err) {
-      this._error = err?.message || String(err);
+      this._error = this._formatError(err);
       this._render();
     } finally {
       this._pendingMediaExperienceId = null;
@@ -192,14 +204,15 @@ class NextFirstPanel extends HTMLElement {
   }
 
   async _generateAI() {
-    const countRaw = prompt("Wie viele Vorschläge? (1-20)", "5");
-    if (countRaw === null) return;
-    const count = Number(countRaw);
+    const countRaw = prompt("Wie viele Vorschläge? (1-20)", "2");
+    const countDefaulted = countRaw === null ? null : countRaw.trim() || "2";
+    if (countDefaulted === null) return;
+    const count = Number(countDefaulted);
     try {
       await this._api("post", "nextfirst/ai/generate", { count: Number.isFinite(count) ? count : 5 });
       await this._load();
     } catch (err) {
-      this._error = err?.message || String(err);
+      this._error = this._formatError(err);
       this._render();
     }
   }
@@ -210,7 +223,7 @@ class NextFirstPanel extends HTMLElement {
       this._summaryPreview = res.summary || null;
       this._render();
     } catch (err) {
-      this._error = err?.message || String(err);
+      this._error = this._formatError(err);
       this._render();
     }
   }
@@ -226,7 +239,7 @@ class NextFirstPanel extends HTMLElement {
       this._openShareBox(result.text, result.share_urls || {});
       await this._load();
     } catch (err) {
-      this._error = err?.message || String(err);
+      this._error = this._formatError(err);
       this._render();
     }
   }
@@ -242,9 +255,23 @@ class NextFirstPanel extends HTMLElement {
       this._openShareBox(result.text, result.share_urls || {});
       await this._load();
     } catch (err) {
-      this._error = err?.message || String(err);
+      this._error = this._formatError(err);
       this._render();
     }
+  }
+
+  _mapsUrl(location) {
+    const query = encodeURIComponent(String(location || "").trim());
+    return query ? `https://www.google.com/maps/search/?api=1&query=${query}` : "";
+  }
+
+  _calendarUrl(item) {
+    const title = encodeURIComponent(String(item?.title || "NextFirst Erlebnis"));
+    const location = encodeURIComponent(String(item?.location || ""));
+    const details = encodeURIComponent(
+      String(item?.description || "Neues Erlebnis mit NextFirst")
+    );
+    return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&location=${location}&details=${details}`;
   }
 
   _openShareBox(text, urls) {
@@ -273,6 +300,12 @@ class NextFirstPanel extends HTMLElement {
     const mediaCount = item.media?.length || 0;
     const category = item.category ? `<span class="pill">${this._escape(item.category)}</span>` : "";
     const courage = item.courage_level ? `<span class="pill">Mut: ${this._escape(item.courage_level)}</span>` : "";
+    const location = item.location ? `<span class="pill">Ort: ${this._escape(item.location)}</span>` : "";
+    const budget = Number.isFinite(Number(item.budget_per_person_eur))
+      ? `<span class="pill">Budget/Person: ${this._escape(item.budget_per_person_eur)} EUR</span>`
+      : "";
+    const mapsUrl = this._mapsUrl(item.location);
+    const calendarUrl = this._calendarUrl(item);
 
     let actions = "";
     if (item.status === "open") {
@@ -280,12 +313,16 @@ class NextFirstPanel extends HTMLElement {
         <button data-action="edit" data-id="${item.id}">Bearbeiten</button>
         <button data-action="skip" data-id="${item.id}">Überspringen</button>
         <button data-action="experience" data-id="${item.id}">Als erlebt markieren</button>
+        ${mapsUrl ? `<a class="action-link" href="${this._escape(mapsUrl)}" target="_blank" rel="noopener noreferrer">Maps</a>` : ""}
+        <a class="action-link" href="${this._escape(calendarUrl)}" target="_blank" rel="noopener noreferrer">Kalender</a>
         <button class="danger" data-action="delete" data-id="${item.id}">Löschen</button>
       `;
     } else if (item.status === "skipped") {
       actions = `
         <button data-action="reactivate" data-id="${item.id}">Zurück zu offen</button>
         <button data-action="edit" data-id="${item.id}">Bearbeiten</button>
+        ${mapsUrl ? `<a class="action-link" href="${this._escape(mapsUrl)}" target="_blank" rel="noopener noreferrer">Maps</a>` : ""}
+        <a class="action-link" href="${this._escape(calendarUrl)}" target="_blank" rel="noopener noreferrer">Kalender</a>
         <button class="danger" data-action="delete" data-id="${item.id}">Löschen</button>
       `;
     } else {
@@ -293,6 +330,8 @@ class NextFirstPanel extends HTMLElement {
         <button data-action="note" data-id="${item.id}">Notiz bearbeiten</button>
         <button data-action="media" data-id="${item.id}">Bild hinzufügen</button>
         <button data-action="share" data-id="${item.id}">Teilen</button>
+        ${mapsUrl ? `<a class="action-link" href="${this._escape(mapsUrl)}" target="_blank" rel="noopener noreferrer">Maps</a>` : ""}
+        <a class="action-link" href="${this._escape(calendarUrl)}" target="_blank" rel="noopener noreferrer">Kalender</a>
         <button data-action="archive" data-id="${item.id}">Ins Archiv</button>
         <button data-action="reactivate" data-id="${item.id}">Erneut planen</button>
       `;
@@ -307,6 +346,8 @@ class NextFirstPanel extends HTMLElement {
         <div class="meta">
           ${category}
           ${courage}
+          ${location}
+          ${budget}
           <span class="pill">Bilder: ${mediaCount}</span>
           ${item.completed_at ? `<span class="pill">Abschluss: ${this._escape(item.completed_at)}</span>` : ""}
         </div>
@@ -456,6 +497,16 @@ class NextFirstPanel extends HTMLElement {
         .meta { display:flex; gap:6px; flex-wrap:wrap; margin:8px 0; }
         .pill { border-radius:999px; background:rgba(35,111,146,0.12); padding:2px 10px; font-size:0.78rem; }
         .actions { display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
+        .action-link {
+          display: inline-flex;
+          align-items: center;
+          text-decoration: none;
+          border-radius: 10px;
+          padding: 8px 12px;
+          background: #236f92;
+          color: #fff;
+          font-weight: 600;
+        }
         .note { font-style:italic; color:var(--secondary-text-color); }
         .state { background:var(--card-background-color); border-radius:10px; border:1px solid rgba(127,127,127,0.2); padding:14px; }
         .state.error { border-color:#b42318; color:#b42318; }

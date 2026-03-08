@@ -28,6 +28,7 @@ class SuggestionContext:
     max_travel_minutes: int
     family_friendly_only: bool
     good_weather_only: bool
+    budget_per_person_eur: int = 0
     travel_origin: str = "zone.home"
     preferred_categories: list[str] = field(default_factory=list)
     preferred_courage_levels: list[str] = field(default_factory=list)
@@ -50,6 +51,8 @@ class SuggestionDraft:
     indoor_outdoor: str | None = None
     weather_hint: str | None = None
     notes: str | None = None
+    location: str | None = None
+    budget_per_person_eur: int | None = None
 
 
 class SuggestionProvider(Protocol):

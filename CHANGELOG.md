@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.3.8 - 2026-03-08
+
+- UX: Fehlerausgaben im Panel verbessert (kein `[object Object]` mehr)
+- KI: Standard-Vorschlagszahl auf `2` gesetzt
+- KI: neue Option `Budget pro Person (EUR)`
+- KI: Orts-Pflicht für generierte Vorschläge (konkrete Orte statt allgemeiner Ideen)
+- UI: Ort als klickbarer Google-Maps-Link
+- UI: Kalender-Button (Google Calendar Template mit Titel+Ort)
+- Datenmodell: `budget_per_person_eur` in Experience aufgenommen
+
 ## 0.3.7 - 2026-03-08
 
 - Fix: Hartes Cache-Busting fuer das Sidebar-Panel (neue JS-Bundle-URL mit Version)
