@@ -56,6 +56,14 @@ NextFirst/
 
 ### A) Integration in Home Assistant laden
 
+#### Über HACS (empfohlen)
+
+1. HACS -> `Integrationen` -> `Custom repositories`.
+2. Repository hinzufügen: `https://github.com/Feberdin/NextFirst` als `Integration`.
+3. `NextFirst` installieren und Home Assistant neu starten.
+
+#### Manuell
+
 1. Repository in dein HA-`config` Verzeichnis kopieren.
 2. Ordner `custom_components/nextfirst` nach `config/custom_components/nextfirst` legen.
 3. Home Assistant neu starten.

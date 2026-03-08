@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.1 - 2026-03-08
+
+- HACS-Kompatibilität verbessert: `hacs.json` ergänzt
+- Manifest um `homeassistant` Mindestversion ergänzt
+- Erstes getaggtes Release für HACS vorbereitet
+
 ## 0.1.0 - 2026-03-08
 
 - Erste lauffähige Version der NextFirst Home-Assistant-Integration
