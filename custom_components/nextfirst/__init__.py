@@ -23,9 +23,14 @@ from typing import Any
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
-from .const import DEFAULT_OPTIONS, DOMAIN, PLATFORMS
+from .const import (
+    CONF_AI_API_KEY,
+    CONF_AI_ENABLED,
+    DEFAULT_OPTIONS,
+    DOMAIN,
+    PLATFORMS,
+)
 from .manager import NextFirstManager
-from .services import async_register_services
 from .storage import NextFirstStorage
 
 _LOGGER = logging.getLogger(__name__)
@@ -34,13 +39,28 @@ RUNTIME_MANAGER = "manager"
 
 
 def _merged_options(entry: ConfigEntry) -> dict[str, Any]:
+    """Merge defaults + config-entry data + options.
+
+    Why this exists:
+    - Config flow captures initial AI fields (for immediate usability).
+    - Options flow remains the source for later edits and takes precedence.
+    """
     options = dict(DEFAULT_OPTIONS)
+    options.update(
+        {
+            CONF_AI_ENABLED: bool(entry.data.get(CONF_AI_ENABLED, options[CONF_AI_ENABLED])),
+            CONF_AI_API_KEY: str(entry.data.get(CONF_AI_API_KEY, options[CONF_AI_API_KEY])),
+        }
+    )
     options.update(entry.options)
     return options
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up NextFirst from config entry."""
+    # Lazy import keeps config-flow import path resilient across HA versions.
+    from .services import async_register_services
+
     hass.data.setdefault(DOMAIN, {})
 
     storage = NextFirstStorage(hass)

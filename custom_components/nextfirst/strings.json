@@ -5,7 +5,9 @@
         "title": "NextFirst",
         "description": "Richtet NextFirst als Erlebnis- und Erinnerungsintegration ein.",
         "data": {
-          "title": "Anzeigename"
+          "title": "Anzeigename",
+          "ai_enabled": "KI sofort aktivieren",
+          "ai_api_key": "API-Schlüssel (optional beim Setup)"
         }
       }
     },

@@ -110,6 +110,15 @@ Optionen (Auszug) im Options Flow:
 - `nextfirst.get_statistics` (Response)
 - `nextfirst.get_album` (Response)
 
+## UI in Home Assistant
+
+- v0.1.x liefert aktuell Entitäten + Services (keinen eigenen Sidebar-Panel-Tab).
+- Empfohlener Weg:
+  1. Neue Dashboard-Ansicht `NextFirst` anlegen.
+  2. Sensoren `sensor.nextfirst_*` als Karten hinzufügen.
+  3. `button.nextfirst_generate_suggestions` als Aktion hinzufügen.
+  4. Services (`nextfirst.*`) über Script-/Button-Karten nutzbar machen.
+
 ## Troubleshooting
 
 - Integration startet nicht:

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.2 - 2026-03-08
+
+- Config-Flow stabilisiert (lazy service import, kompatiblere Service-Typisierung)
+- API-Key kann bereits im initialen Setup erfasst werden
+- Options-Flow-Normalisierung robuster umgesetzt
+
 ## 0.1.1 - 2026-03-08
 
 - HACS-Kompatibilität verbessert: `hacs.json` ergänzt

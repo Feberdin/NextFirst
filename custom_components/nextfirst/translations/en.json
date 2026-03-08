@@ -6,7 +6,9 @@
         "title": "NextFirst",
         "description": "Set up NextFirst as your experience and memory integration.",
         "data": {
-          "title": "Display name"
+          "title": "Display name",
+          "ai_enabled": "Enable AI now",
+          "ai_api_key": "API key (optional during setup)"
         }
       }
     },

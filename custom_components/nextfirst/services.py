@@ -22,7 +22,7 @@ from typing import Any, Callable
 
 import voluptuous as vol
 from homeassistant.components import persistent_notification
-from homeassistant.core import HomeAssistant, ServiceCall, ServiceResponse, SupportsResponse
+from homeassistant.core import HomeAssistant, ServiceCall, SupportsResponse
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import aiohttp_client
 
@@ -147,13 +147,13 @@ async def async_register_services(
         except Exception as err:
             raise to_ha_error(err) from err
 
-    async def get_statistics(call: ServiceCall) -> ServiceResponse:
+    async def get_statistics(call: ServiceCall) -> dict[str, Any]:
         try:
             return manager.get_statistics()
         except Exception as err:
             raise to_ha_error(err) from err
 
-    async def get_album(call: ServiceCall) -> ServiceResponse:
+    async def get_album(call: ServiceCall) -> dict[str, Any]:
         try:
             return {"album": manager.get_statistics().get("album_recent", [])}
         except Exception as err:

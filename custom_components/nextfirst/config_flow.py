@@ -55,9 +55,22 @@ class NextFirstConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         if user_input is not None:
             title = user_input.get("title") or "NextFirst"
-            return self.async_create_entry(title=title, data={})
+            # Keep initial AI settings in config-entry data for first-setup usability.
+            return self.async_create_entry(
+                title=title,
+                data={
+                    CONF_AI_ENABLED: bool(user_input.get(CONF_AI_ENABLED, False)),
+                    CONF_AI_API_KEY: str(user_input.get(CONF_AI_API_KEY, "")),
+                },
+            )
 
-        schema = vol.Schema({vol.Optional("title", default="NextFirst"): str})
+        schema = vol.Schema(
+            {
+                vol.Optional("title", default="NextFirst"): str,
+                vol.Optional(CONF_AI_ENABLED, default=False): bool,
+                vol.Optional(CONF_AI_API_KEY, default=""): str,
+            }
+        )
         return self.async_show_form(step_id="user", data_schema=schema)
 
     @staticmethod
@@ -75,7 +88,14 @@ class NextFirstOptionsFlow(config_entries.OptionsFlow):
     async def async_step_init(self, user_input: dict[str, Any] | None = None):
         """Edit integration options with safe defaults."""
         if user_input is not None:
-            return self.async_create_entry(title="", data=user_input)
+            normalized = dict(user_input)
+            normalized[CONF_PREFERRED_CATEGORIES] = _split_csv(
+                str(user_input.get(CONF_PREFERRED_CATEGORIES, ""))
+            )
+            normalized[CONF_PREFERRED_COURAGE_LEVELS] = _split_csv(
+                str(user_input.get(CONF_PREFERRED_COURAGE_LEVELS, ""))
+            )
+            return self.async_create_entry(title="", data=normalized)
 
         current = dict(DEFAULT_OPTIONS)
         current.update(self.config_entry.options)
@@ -122,17 +142,6 @@ class NextFirstOptionsFlow(config_entries.OptionsFlow):
         )
 
         return self.async_show_form(step_id="init", data_schema=schema)
-
-    async def async_create_entry(self, title: str, data: dict[str, Any]):  # type: ignore[override]
-        """Normalize comma-separated string fields before storing options."""
-        normalized = dict(data)
-        normalized[CONF_PREFERRED_CATEGORIES] = _split_csv(
-            str(data.get(CONF_PREFERRED_CATEGORIES, ""))
-        )
-        normalized[CONF_PREFERRED_COURAGE_LEVELS] = _split_csv(
-            str(data.get(CONF_PREFERRED_COURAGE_LEVELS, ""))
-        )
-        return await super().async_create_entry(title=title, data=normalized)
 
 
 def _split_csv(value: str) -> list[str]:
