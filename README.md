@@ -52,6 +52,15 @@ Die Integration verbindet:
 
 ## Antichronologischer Changelog
 
+### v0.3.13 (2026-03-08)
+
+- Native Sharing Abstraktion im Panel ergänzt (strukturierter Payload: `title`, `body`, optional `url`, optional `image_ref`)
+- Plattform-Reihenfolge: iOS Bridge (`window.webkit.messageHandlers.nextfirstShare`) -> Android Bridge (`window.NextFirstAndroidShare.share`) -> Web Share API -> bestehender Share-Dialog
+- Graceful Fallback ergänzt, wenn Ziel-Apps einzelne Felder ignorieren (Text bleibt immer erhalten)
+- Referenz-Implementierungen für native Layer ergänzt:
+  - iOS: `UIActivityViewController`
+  - Android: `Intent.ACTION_SEND` mit MIME-Typen und Content-URI-/FileProvider-Hinweisen
+
 ### v0.3.12 (2026-03-08)
 
 - Startpunkt für Fahrzeit auf Wohnort-/Startadresse umgestellt (kein `zone.home`-Standard mehr)

@@ -295,7 +295,12 @@ class NextFirstPanel extends HTMLElement {
         text: text.trim() || undefined,
         hashtags: hashtags.trim() || undefined,
       });
-      this._openShareBox(result.text, result.share_urls || {});
+      const payload = this._buildSharePayload({
+        title: "NextFirst Monatsrückblick",
+        body: result.text,
+      });
+      const nativeShared = await this._shareWithNativeLayer(payload);
+      if (!nativeShared) this._openShareBox(result.text, result.share_urls || {});
       await this._load();
     } catch (err) {
       this._error = this._formatError(err);
@@ -303,7 +308,8 @@ class NextFirstPanel extends HTMLElement {
     }
   }
 
-  async _shareExperience(id, defaultTitle) {
+  async _shareExperience(id, item) {
+    const defaultTitle = item?.title || "Unbenannt";
     const text = prompt("Optional eigener Share-Text:", `Neues NextFirst Erlebnis: ${defaultTitle}`) ?? "";
     const hashtags = prompt("Hashtags (kommasepariert, optional):", "") ?? "";
     try {
@@ -311,7 +317,14 @@ class NextFirstPanel extends HTMLElement {
         text: text.trim() || undefined,
         hashtags: hashtags.trim() || undefined,
       });
-      this._openShareBox(result.text, result.share_urls || {});
+      const payload = this._buildSharePayload({
+        title: defaultTitle,
+        body: result.text,
+        url: item?.offer_url || "",
+        imageRef: item?.media?.[0]?.path || "",
+      });
+      const nativeShared = await this._shareWithNativeLayer(payload);
+      if (!nativeShared) this._openShareBox(result.text, result.share_urls || {});
       await this._load();
     } catch (err) {
       this._error = this._formatError(err);
@@ -330,6 +343,62 @@ class NextFirstPanel extends HTMLElement {
     if (raw.startsWith("http://") || raw.startsWith("https://")) return raw;
     if (raw.includes(".") && !raw.includes(" ")) return `https://${raw}`;
     return "";
+  }
+
+  _buildSharePayload({ title = "", body = "", url = "", imageRef = "" } = {}) {
+    return {
+      title: String(title || "").trim() || "NextFirst",
+      body: String(body || "").trim(),
+      url: String(url || "").trim() || undefined,
+      image_ref: String(imageRef || "").trim() || undefined,
+    };
+  }
+
+  async _shareWithNativeLayer(payload) {
+    const iosBridge = window?.webkit?.messageHandlers?.nextfirstShare;
+    if (iosBridge?.postMessage) {
+      iosBridge.postMessage(payload);
+      return true;
+    }
+
+    const androidBridge = window?.NextFirstAndroidShare;
+    if (androidBridge?.share) {
+      androidBridge.share(JSON.stringify(payload));
+      return true;
+    }
+
+    if (!navigator.share) return false;
+    const text = payload.body || payload.title;
+    const url = payload.url;
+
+    if (payload.image_ref && navigator.canShare) {
+      try {
+        const imgUrl = this._resolveMediaUrl(payload.image_ref);
+        if (imgUrl) {
+          const response = await fetch(imgUrl);
+          if (response.ok) {
+            const blob = await response.blob();
+            const ext = (blob.type || "image/jpeg").split("/")[1] || "jpg";
+            const file = new File([blob], `nextfirst-share.${ext}`, {
+              type: blob.type || "image/jpeg",
+            });
+            if (navigator.canShare({ files: [file] })) {
+              await navigator.share({ title: payload.title, text, url, files: [file] });
+              return true;
+            }
+          }
+        }
+      } catch (err) {
+        // Continue with text/url fallback.
+      }
+    }
+
+    try {
+      await navigator.share({ title: payload.title, text, url });
+      return true;
+    } catch (err) {
+      return false;
+    }
   }
 
   _calendarUrl(item) {
@@ -607,7 +676,7 @@ class NextFirstPanel extends HTMLElement {
         if (action === "delete") return this._delete(id);
         if (action === "media") return this._addMedia(id);
         if (action === "note") return this._addNote(id, item?.notes);
-        if (action === "share") return this._shareExperience(id, item?.title || "Unbenannt");
+        if (action === "share") return this._shareExperience(id, item);
         if (action === "archive") return this._action(id, "archive");
         if (action === "calendar_ics") return this._downloadCalendarIcs(item);
       });
