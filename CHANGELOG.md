@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.1 - 2026-03-08
+
+- Hotfix: Config-Flow 500 behoben (OptionsFlow Initialisierung angepasst)
+- Hotfix: Sensor-Setup kompatibel gemacht (device_class Feld ergänzt)
+
 ## 0.3.0 - 2026-03-08
 
 - Social Posting mit echten Providern ergänzt: `webhook`, `mastodon`, `bluesky`

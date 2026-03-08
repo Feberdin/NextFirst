@@ -52,6 +52,11 @@ Die Integration verbindet:
 
 ## Antichronologischer Changelog
 
+### v0.3.1 (2026-03-08)
+
+- Hotfix für `Der Konfigurationsfluss konnte nicht geladen werden` (500 Fehler)
+- Sensor-Setup-Fix für aktuelle Home-Assistant-Version
+
 ### v0.3.0 (2026-03-08)
 
 - Social Provider integriert: `webhook`, `mastodon`, `bluesky`
