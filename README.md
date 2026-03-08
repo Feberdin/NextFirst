@@ -1,157 +1,71 @@
 # NextFirst
 
-NextFirst ist eine Home-Assistant-Integration für neue Erlebnisse: planen, umsetzen, dokumentieren und als Album wieder ansehen.
+NextFirst ist eine Home-Assistant-Integration, die Menschen dabei unterstützt, bewusst neue Erfahrungen zu planen, umzusetzen und als Erinnerungsalbum festzuhalten.
 
-## Zweck
+Die Integration verbindet:
 
-- Neue Aktivitäten als Einträge verwalten (`offen`, `übersprungen`, `erlebt`, `archiviert`)
-- Erlebnisse nach Abschluss mit Bildern/Notizen ergänzen
-- Optionale KI-Vorschläge erzeugen (lokal nutzbar auch ohne KI)
+- Erlebnislisten (`Offen`, `Übersprungen`, `Erlebt`, `Archiviert`)
+- optionale KI-Vorschläge für neue Aktivitäten
+- ein visuelles Album mit Bildern, Notizen und Metadaten
 
-## Features der v0.2.0
+> Hinweis: Bilder/Screenshots werden später ergänzt.
 
+## Installation über HACS
+
+1. HACS öffnen -> `Integrationen` -> `Custom repositories`.
+2. Repository hinzufügen: `https://github.com/Feberdin/NextFirst` als Typ `Integration`.
+3. `NextFirst` installieren.
+4. Home Assistant neu starten.
+5. Integration hinzufügen unter `Einstellungen -> Geräte & Dienste -> Integration hinzufügen`.
+
+## Features
+
+- Eigener Sidebar-Panel-Eintrag `NextFirst`
+- Vier Hauptansichten im Panel:
+  - `Offen`
+  - `Übersprungen`
+  - `Erlebt`
+  - `Album`
+- Direkte Aktionen in der UI:
+  - Erstellen, Bearbeiten, Löschen
+  - Als übersprungen markieren, reaktivieren
+  - Als erlebt markieren, archivieren
+  - Notiz bearbeiten, Bildpfad hinzufügen
+- Home-Assistant-Services für Automationen (`nextfirst.*`)
+- Sensoren für Statistiken (`sensor.nextfirst_*`)
+- Optionaler KI-Modus (provider-neutral vorbereitet, v1 OpenAI)
+- Lokal-first JSON-Storage mit versionsfähigem Schema
+
+## Community-Dokumente
+
+- [Contributing](CONTRIBUTING.md)
+- [Code of Conduct](CODE_OF_CONDUCT.md)
+- [Security Policy](SECURITY.md)
+- [License](LICENSE)
+
+## Antichronologischer Changelog
+
+### v0.2.0 (2026-03-08)
+
+- Sidebar-Panel `NextFirst` in Home Assistant ergänzt
+- Neue Views: `Offen`, `Übersprungen`, `Erlebt`, `Album`
+- HTTP-API für Panel-Interaktionen unter `/api/nextfirst/*`
+- UI-Aktionen für Statuswechsel, CRUD, Notizen und Medien ergänzt
+
+### v0.1.2 (2026-03-08)
+
+- Config-Flow stabilisiert
+- API-Key bereits im initialen Setup erfassbar
+- Options-Flow-Normalisierung robuster umgesetzt
+
+### v0.1.1 (2026-03-08)
+
+- HACS-Kompatibilität verbessert (`hacs.json` ergänzt)
+- Manifest um `homeassistant` Mindestversion ergänzt
+- Getaggtes Release für HACS veröffentlicht
+
+### v0.1.0 (2026-03-08)
+
+- Erste lauffähige MVP-Version der Integration
 - Config Flow + Options Flow
-- CRUD und Statuswechsel via Home-Assistant-Services
-- Sensoren für Überblicksstatistiken
-- Button zum KI-Vorschläge-Generieren
-- JSON-Storage mit Schema-Version und migrationsfähiger Struktur
-- Defensives Fehlerhandling mit klaren Meldungen
-- Provider-neutrale KI-Schicht (v1 Provider: OpenAI)
-- Eigenes Sidebar-Panel mit Ansichten `Offen`, `Übersprungen`, `Erlebt`, `Album`
-- Direkte UI-Aktionen: Bearbeiten, Überspringen, Als erlebt markieren, Reaktivieren, Löschen
-- Panel-Backend über authentifizierte HTTP-API unter `/api/nextfirst/*`
-
-## Projektstruktur
-
-```text
-NextFirst/
-├─ custom_components/nextfirst/
-│  ├─ __init__.py
-│  ├─ manifest.json
-│  ├─ config_flow.py
-│  ├─ const.py
-│  ├─ domain.py
-│  ├─ errors.py
-│  ├─ manager.py
-│  ├─ api.py
-│  ├─ panel.py
-│  ├─ services.py
-│  ├─ services.yaml
-│  ├─ sensor.py
-│  ├─ button.py
-│  ├─ storage.py
-│  ├─ strings.json
-│  ├─ frontend/
-│  │  └─ nextfirst-panel.js
-│  ├─ translations/
-│  │  ├─ de.json
-│  │  └─ en.json
-│  └─ ai/
-│     ├─ service.py
-│     └─ providers/
-│        ├─ base.py
-│        └─ openai.py
-├─ docs/codex_spec.md
-├─ tests/test_domain.py
-├─ CONTRIBUTING.md
-├─ .gitignore
-└─ pyproject.toml
-```
-
-## Quickstart
-
-### A) Integration in Home Assistant laden
-
-#### Über HACS (empfohlen)
-
-1. HACS -> `Integrationen` -> `Custom repositories`.
-2. Repository hinzufügen: `https://github.com/Feberdin/NextFirst` als `Integration`.
-3. `NextFirst` installieren und Home Assistant neu starten.
-
-#### Manuell
-
-1. Repository in dein HA-`config` Verzeichnis kopieren.
-2. Ordner `custom_components/nextfirst` nach `config/custom_components/nextfirst` legen.
-3. Home Assistant neu starten.
-4. Unter `Einstellungen -> Geräte & Dienste -> Integration hinzufügen` nach `NextFirst` suchen.
-
-### B) Lokale Tests ausführen (3 Zeilen)
-
-```bash
-python3 -m venv .venv && source .venv/bin/activate
-pip install -U pip pytest
-pytest
-```
-
-## Konfiguration
-
-Optionen (Auszug) im Options Flow:
-
-- `ai_enabled`
-- `ai_provider` (v1: `openai`)
-- `ai_model`
-- `ai_api_key`
-- `ai_suggestion_count`
-- `ai_temperature`
-- `ai_max_tokens`
-- `max_travel_minutes`
-- `preferred_categories` (CSV)
-- `preferred_courage_levels` (CSV)
-- `family_friendly_only`
-- `good_weather_only`
-- `custom_interests`
-- `exclusions`
-
-## Services (Auszug)
-
-- `nextfirst.create_experience`
-- `nextfirst.update_experience`
-- `nextfirst.delete_experience`
-- `nextfirst.mark_skipped`
-- `nextfirst.reactivate_experience`
-- `nextfirst.mark_experienced`
-- `nextfirst.attach_media`
-- `nextfirst.add_note`
-- `nextfirst.generate_ai_suggestions`
-- `nextfirst.get_statistics` (Response)
-- `nextfirst.get_album` (Response)
-
-## UI in Home Assistant
-
-- Ab v0.2.0 erscheint `NextFirst` als eigener Eintrag in der linken Seitenleiste.
-- Das Panel enthält die vier Hauptansichten:
-  1. `Offen`
-  2. `Übersprungen`
-  3. `Erlebt`
-  4. `Album`
-- Aktionen sind direkt in den Eintragskarten verfügbar.
-- Entitäten und Services bleiben zusätzlich für Automationen/Dashboards nutzbar.
-
-## Troubleshooting
-
-- Integration startet nicht:
-  - Prüfe `manifest.json`, `config_flow.py` und HA-Logs auf Importfehler.
-- Einträge fehlen nach Neustart:
-  - Prüfe `.storage`/Store-Datei auf gültiges JSON und `schema_version`.
-- KI-Vorschläge schlagen fehl:
-  - Prüfe API-Key, Modellname, Internetzugang und Fehlermeldung in HA-Logs.
-- Album zeigt keine Bilder:
-  - Prüfe `attach_media` Pfade und ob die referenzierten Dateien existieren.
-
-## Logging und Debug
-
-- Logger-Namespace: `custom_components.nextfirst`
-- Empfohlene Level:
-  - `INFO` im Regelbetrieb
-  - `DEBUG` für Fehlersuche
-- Sensible Daten (API-Key) niemals unmaskiert loggen.
-
-## Security-Hinweise
-
-- KI bleibt optional; ohne KI ist NextFirst vollständig nutzbar.
-- Bilder bleiben standardmäßig lokal (nur Referenzen im Datensatz).
-- API-Schlüssel nur in HA-Optionen/Speichermechanismen pflegen.
-
-## Lizenz
-
-MIT (siehe `LICENSE`)
+- Services, Sensoren und Basis-Datenhaltung implementiert
