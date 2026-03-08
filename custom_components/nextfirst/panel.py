@@ -19,6 +19,7 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
+from homeassistant.components import frontend
 from homeassistant.components.http import StaticPathConfig
 from homeassistant.core import HomeAssistant
 
@@ -40,7 +41,8 @@ async def async_setup_panel(hass: HomeAssistant) -> None:
         _LOGGER.debug("NextFirst static path already registered", exc_info=True)
 
     try:
-        await hass.components.frontend.async_register_built_in_panel(
+        await frontend.async_register_built_in_panel(
+            hass,
             component_name="custom",
             frontend_url_path=PANEL_PATH,
             sidebar_title="NextFirst",
@@ -64,6 +66,6 @@ async def async_setup_panel(hass: HomeAssistant) -> None:
 async def async_unload_panel(hass: HomeAssistant) -> None:
     """Remove the sidebar panel on integration unload."""
     try:
-        await hass.components.frontend.async_remove_panel(PANEL_PATH)
+        await frontend.async_remove_panel(hass, PANEL_PATH)
     except Exception:  # pragma: no cover - defensive cleanup
         _LOGGER.debug("NextFirst panel cleanup skipped", exc_info=True)

@@ -37,8 +37,8 @@ class NextFirstSensorDescription:
     key: str
     name: str
     icon: str
-    device_class: str | None = None
     value_getter: Callable[[dict[str, Any]], Any]
+    device_class: str | None = None
     attributes_getter: Callable[[dict[str, Any]], dict[str, Any]] | None = None
 
 
