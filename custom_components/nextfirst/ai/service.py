@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import logging
 import re
+from urllib.parse import urlparse
 from typing import Any
 
 from aiohttp import ClientSession
@@ -114,16 +115,50 @@ def _looks_like_address(value: str | None) -> bool:
 
 
 def _normalize_offer_url(url: str | None, title: str, location: str | None) -> str:
-    """Return a safe external URL; fallback to Google search when provider did not return one."""
+    """Return normalized explicit offer URL; no synthetic search fallback allowed."""
     raw = str(url or "").strip()
     if raw and raw.startswith(("http://", "https://")):
         return raw
     if raw and "." in raw and " " not in raw:
         return f"https://{raw}"
-    from urllib.parse import quote_plus
+    return ""
 
-    q = " ".join(part for part in [title.strip(), str(location or "").strip()] if part)
-    return f"https://www.google.com/search?q={quote_plus(q or title.strip())}"
+
+def _is_blocked_offer_url(url: str) -> bool:
+    """Reject generic search/maps URLs that don't identify a concrete offer page."""
+    host = (urlparse(url).netloc or "").lower()
+    blocked_hosts = {
+        "google.com",
+        "www.google.com",
+        "maps.google.com",
+        "duckduckgo.com",
+        "www.duckduckgo.com",
+        "bing.com",
+        "www.bing.com",
+    }
+    return any(host == blocked or host.endswith(f".{blocked}") for blocked in blocked_hosts)
+
+
+async def _verify_offer_url(session: ClientSession, url: str) -> bool:
+    """Best-effort verification that URL is reachable and looks like a concrete page."""
+    if not url or _is_blocked_offer_url(url):
+        return False
+    headers = {"User-Agent": "NextFirst/0.3"}
+    try:
+        async with session.get(url, headers=headers, allow_redirects=True, timeout=20) as resp:
+            if resp.status >= 400:
+                return False
+            content_type = str(resp.headers.get("Content-Type", "")).lower()
+            if "text/html" not in content_type and "application/xhtml+xml" not in content_type:
+                return False
+            final_host = (urlparse(str(resp.url)).netloc or "").lower()
+            if not final_host:
+                return False
+            if _is_blocked_offer_url(str(resp.url)):
+                return False
+            return True
+    except Exception:
+        return False
 
 
 def _build_context(options: dict[str, Any], *, suggestion_count: int) -> SuggestionContext:
@@ -235,6 +270,7 @@ async def generate_and_store_suggestions(
     attempts = 0
     dropped_missing_location = 0
     dropped_missing_offer_url = 0
+    dropped_unverified_offer_url = 0
     dropped_distance = 0
     fallback_without_verified_route = 0
     # Providers may return fewer suggestions than requested; retry with remaining count.
@@ -310,6 +346,9 @@ async def generate_and_store_suggestions(
             if not draft.offer_url:
                 dropped_missing_offer_url += 1
                 continue
+            if not await _verify_offer_url(session, draft.offer_url):
+                dropped_unverified_offer_url += 1
+                continue
             seen_titles.add(key)
             drafts.append(draft)
             if len(drafts) >= target_count:
@@ -342,12 +381,13 @@ async def generate_and_store_suggestions(
     manager.last_ai_generation = utc_now_iso()
     _LOGGER.info(
         "Generated %s AI suggestions (requested=%s, dropped_missing_location=%s, "
-        "dropped_missing_offer_url=%s, dropped_distance=%s, "
+        "dropped_missing_offer_url=%s, dropped_unverified_offer_url=%s, dropped_distance=%s, "
         "fallback_without_verified_route=%s, count_override=%s)",
         len(created),
         target_count,
         dropped_missing_location,
         dropped_missing_offer_url,
+        dropped_unverified_offer_url,
         dropped_distance,
         fallback_without_verified_route,
         count_override,

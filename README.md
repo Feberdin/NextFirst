@@ -52,6 +52,14 @@ Die Integration verbindet:
 
 ## Antichronologischer Changelog
 
+### v0.3.14 (2026-03-08)
+
+- Anti-Halluzinations-Hotfix: KI-Vorschläge werden nur übernommen, wenn die Angebots-URL echt wirkt und erreichbar ist
+- Such-/Maps-Links als Angebots-URL werden blockiert (`google`, `bing`, `duckduckgo`, Maps)
+- Keine künstlichen Google-Such-Fallback-Links mehr für fehlende Angebots-URLs
+- Prompt verschärft: keine erfundenen Angebote/Workshops, bei Unsicherheit lieber nichts zurückgeben
+- Standard-Kreativität (`temperature`) auf `0.4` reduziert, um faktische Stabilität zu erhöhen
+
 ### v0.3.13 (2026-03-08)
 
 - Native Sharing Abstraktion im Panel ergänzt (strukturierter Payload: `title`, `body`, optional `url`, optional `image_ref`)
