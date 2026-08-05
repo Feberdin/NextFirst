@@ -26,6 +26,7 @@ if TYPE_CHECKING:
 
 from .const import (
     CONF_AI_API_KEY,
+    CONF_AI_API_SECRET,
     CONF_AI_ENABLED,
     CONF_DEBUG_ENABLED,
     DEFAULT_OPTIONS,
@@ -50,10 +51,27 @@ def _merged_options(entry: ConfigEntry) -> dict[str, Any]:
     options.update(
         {
             CONF_AI_ENABLED: bool(entry.data.get(CONF_AI_ENABLED, options[CONF_AI_ENABLED])),
-            CONF_AI_API_KEY: str(entry.data.get(CONF_AI_API_KEY, options[CONF_AI_API_KEY])),
+            CONF_AI_API_SECRET: str(
+                entry.data.get(
+                    CONF_AI_API_SECRET,
+                    entry.data.get(
+                        CONF_AI_API_KEY,
+                        options[CONF_AI_API_SECRET],
+                    ),
+                )
+            ),
         }
     )
     options.update(entry.options)
+
+    if not options.get(CONF_AI_API_SECRET):
+        if entry.options.get(CONF_AI_API_SECRET):
+            options[CONF_AI_API_SECRET] = str(entry.options.get(CONF_AI_API_SECRET, ""))
+        elif entry.options.get(CONF_AI_API_KEY):
+            options[CONF_AI_API_SECRET] = str(entry.options.get(CONF_AI_API_KEY, ""))
+        elif entry.data.get(CONF_AI_API_KEY):
+            options[CONF_AI_API_SECRET] = str(entry.data.get(CONF_AI_API_KEY, ""))
+
     return options
 
 

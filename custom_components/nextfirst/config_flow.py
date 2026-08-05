@@ -25,6 +25,7 @@ from homeassistant.core import callback
 
 from .const import (
     CONF_AI_API_KEY,
+    CONF_AI_API_SECRET,
     CONF_AI_ENABLED,
     CONF_AI_MAX_TOKENS,
     CONF_AI_MODEL,
@@ -71,6 +72,8 @@ class NextFirstConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 title=title,
                 data={
                     CONF_AI_ENABLED: bool(user_input.get(CONF_AI_ENABLED, False)),
+                    CONF_AI_API_SECRET: str(user_input.get(CONF_AI_API_SECRET, "")),
+                    # Keep legacy key only for migration from older config entries.
                     CONF_AI_API_KEY: str(user_input.get(CONF_AI_API_KEY, "")),
                 },
             )
@@ -79,7 +82,7 @@ class NextFirstConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             {
                 vol.Optional("title", default="NextFirst"): str,
                 vol.Optional(CONF_AI_ENABLED, default=False): bool,
-                vol.Optional(CONF_AI_API_KEY, default=""): str,
+                vol.Optional(CONF_AI_API_SECRET, default=""): str,
             }
         )
         return self.async_show_form(step_id="user", data_schema=schema)
@@ -114,6 +117,9 @@ class NextFirstOptionsFlow(config_entries.OptionsFlow):
         if str(current.get(CONF_TRAVEL_ORIGIN, "")).strip().lower().startswith("zone."):
             current[CONF_TRAVEL_ORIGIN] = ""
 
+        if not current.get(CONF_AI_API_SECRET) and current.get(CONF_AI_API_KEY):
+            current[CONF_AI_API_SECRET] = current[CONF_AI_API_KEY]
+
         schema = vol.Schema(
             {
                 vol.Optional(CONF_AI_ENABLED, default=current[CONF_AI_ENABLED]): bool,
@@ -131,7 +137,7 @@ class NextFirstOptionsFlow(config_entries.OptionsFlow):
                 vol.Optional(CONF_AI_MAX_TOKENS, default=current[CONF_AI_MAX_TOKENS]): vol.All(
                     int, vol.Range(min=100, max=4000)
                 ),
-                vol.Optional(CONF_AI_API_KEY, default=current[CONF_AI_API_KEY]): str,
+                vol.Optional(CONF_AI_API_SECRET, default=current[CONF_AI_API_SECRET]): str,
                 vol.Optional(
                     CONF_MAX_TRAVEL_MINUTES,
                     default=current[CONF_MAX_TRAVEL_MINUTES],

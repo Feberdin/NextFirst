@@ -30,6 +30,7 @@ CONF_AI_SUGGESTION_COUNT = "ai_suggestion_count"
 CONF_BUDGET_PER_PERSON_EUR = "budget_per_person_eur"
 CONF_AI_TEMPERATURE = "ai_temperature"
 CONF_AI_MAX_TOKENS = "ai_max_tokens"
+CONF_AI_API_SECRET = "ai_service_key"
 CONF_AI_API_KEY = "ai_api_key"
 CONF_MAX_TRAVEL_MINUTES = "max_travel_minutes"
 CONF_TRAVEL_ORIGIN = "travel_origin"
@@ -65,7 +66,7 @@ DEFAULT_OPTIONS = {
     CONF_BUDGET_PER_PERSON_EUR: 50,
     CONF_AI_TEMPERATURE: 0.4,
     CONF_AI_MAX_TOKENS: 900,
-    CONF_AI_API_KEY: "",
+    CONF_AI_API_SECRET: "",
     CONF_MAX_TRAVEL_MINUTES: 60,
     CONF_TRAVEL_ORIGIN: "",
     CONF_FAMILY_FRIENDLY_ONLY: False,
