@@ -25,8 +25,8 @@ from typing import Any
 from aiohttp import ClientSession
 
 from ..const import (
-    CONF_AI_API_KEY,
     CONF_AI_ENABLED,
+    CONF_AI_API_SECRET,
     CONF_AI_MAX_TOKENS,
     CONF_AI_MODEL,
     CONF_AI_PROVIDER,
@@ -49,6 +49,17 @@ from .providers.base import SuggestionContext
 from .providers.openai import OpenAISuggestionProvider, build_openai_prompt_payload
 
 _LOGGER = logging.getLogger(__name__)
+_DEFAULT_AI_PROVIDER = "openai"
+
+
+def _required_ai_provider(options: dict[str, Any]) -> str:
+    """Validate and return the active provider identifier."""
+    provider_name = str(options.get(CONF_AI_PROVIDER, _DEFAULT_AI_PROVIDER))
+    if provider_name != _DEFAULT_AI_PROVIDER:
+        raise AIProviderError(
+            f"Unsupported AI provider '{provider_name}'. Fix: use the configured default provider."
+        )
+    return provider_name
 
 
 def _resolve_origin_coordinates(manager: NextFirstManager, travel_origin: str) -> tuple[float, float] | None:
@@ -179,11 +190,7 @@ def _build_context(options: dict[str, Any], *, suggestion_count: int) -> Suggest
 
 def build_prompt_preview(options: dict[str, Any]) -> dict[str, Any]:
     """Build human-readable debug preview of the OpenAI prompt payload."""
-    provider_name = str(options.get(CONF_AI_PROVIDER, "openai"))
-    if provider_name != "openai":
-        raise AIProviderError(
-            f"Unsupported AI provider '{provider_name}'. Fix: use provider 'openai'."
-        )
+    provider_name = _required_ai_provider(options)
     context = _build_context(options, suggestion_count=1)
     system_prompt, user_prompt = build_openai_prompt_payload(context)
     return {
@@ -237,11 +244,7 @@ async def generate_and_store_suggestions(
             "AI suggestions are disabled. Fix: enable AI in NextFirst options first."
         )
 
-    provider_name = str(options.get(CONF_AI_PROVIDER, "openai"))
-    if provider_name != "openai":
-        raise AIProviderError(
-            f"Unsupported AI provider '{provider_name}'. Fix: use provider 'openai'."
-        )
+    _required_ai_provider(options)
 
     # Product decision: exactly one suggestion per user action.
     target_count = 1
@@ -259,7 +262,7 @@ async def generate_and_store_suggestions(
 
     provider = OpenAISuggestionProvider(
         session=session,
-        api_key=str(options.get(CONF_AI_API_KEY, "")),
+        api_key=str(options.get(CONF_AI_API_SECRET, "")),
         model=str(options.get(CONF_AI_MODEL, "gpt-4.1-mini")),
         temperature=float(options.get(CONF_AI_TEMPERATURE, 0.7)),
         max_tokens=int(options.get(CONF_AI_MAX_TOKENS, 600)),

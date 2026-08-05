@@ -8,7 +8,7 @@
         "data": {
           "title": "Display name",
           "ai_enabled": "Enable AI now",
-          "ai_api_key": "API key (optional during setup)"
+          "ai_service_key": "Service key (optional during setup)"
         }
       }
     },
@@ -29,7 +29,7 @@
           "budget_per_person_eur": "Budget per person (EUR)",
           "ai_temperature": "Creativity",
           "ai_max_tokens": "Max tokens",
-          "ai_api_key": "API key",
+          "ai_service_key": "Service key",
           "max_travel_minutes": "Max travel time (minutes)",
           "travel_origin": "Home/start address (for example Main St 1, 12345 City)",
           "family_friendly_only": "Family friendly only",

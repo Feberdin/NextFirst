@@ -7,7 +7,7 @@
         "data": {
           "title": "Anzeigename",
           "ai_enabled": "KI sofort aktivieren",
-          "ai_api_key": "API-Schlüssel (optional beim Setup)"
+          "ai_service_key": "Service-Schlüssel (optional beim Setup)"
         }
       }
     },
@@ -28,7 +28,7 @@
           "budget_per_person_eur": "Budget pro Person (EUR)",
           "ai_temperature": "Kreativität (Temperature)",
           "ai_max_tokens": "Max. Tokens",
-          "ai_api_key": "API-Schlüssel",
+          "ai_service_key": "Service-Schlüssel",
           "max_travel_minutes": "Maximale Fahrzeit (Minuten)",
           "travel_origin": "Wohnort/Startadresse (z. B. Musterstr. 1, 12345 Musterstadt)",
           "family_friendly_only": "Nur familienfreundlich",
