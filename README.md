@@ -164,3 +164,13 @@ Die Integration verbindet:
 - Erste lauffähige MVP-Version der Integration
 - Config Flow + Options Flow
 - Services, Sensoren und Basis-Datenhaltung implementiert
+
+
+## Troubleshooting und Debugging
+
+- Integration nicht sichtbar: HACS-Installation, Home-Assistant-Neustart und
+  die installierte Manifest-Version prüfen.
+- Konfigurationsfluss fehlerhaft: zuerst den Python-Traceback im
+  Home-Assistant-Log prüfen.
+- KI-Vorschläge fehlen: Startadresse, Provider-Konfiguration, Erreichbarkeit
+  und aktiviertes Debug-Logging kontrollieren; keine Tokens in Issues kopieren.
